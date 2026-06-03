@@ -11,8 +11,14 @@ export const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwt: {
     secret: process.env.JWT_SECRET || 'default_secret',
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  },
+  zalo: {
+    appId: process.env.ZALO_APP_ID || '',
+    appSecret: process.env.ZALO_APP_SECRET || '',
+    oauthUrl: process.env.ZALO_OAUTH_URL || 'https://oauth.zaloapp.com/v4/oa/access_token',
+    graphApiUrl: process.env.ZALO_GRAPH_API_URL || 'https://graph.zalo.me/v2.0/me',
   },
   checkvn: {
     apiUrl: process.env.CHECKVN_API_URL || 'https://api.checkvn.vn/v1',

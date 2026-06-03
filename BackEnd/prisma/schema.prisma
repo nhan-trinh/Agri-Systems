@@ -27,12 +27,21 @@ model Cooperative {
 
 model User {
   id             String      @id @default(cuid())
-  phone          String      @unique
-  password_hash  String
+  phone          String?     @unique
+  password_hash  String?
   role           UserRole
   cooperative_id String?
   cooperative    Cooperative? @relation(fields: [cooperative_id], references: [id])
   farmer_id      String?     @unique
+
+  // Zalo Mini App Auth
+  zalo_id        String?     @unique
+  zalo_name      String?
+  avatar_url     String?
+
+  // First login flag — web admin must change password on first login
+  is_first_login Boolean     @default(true)
+
   is_active      Boolean     @default(true)
   last_login_at  DateTime?
   created_at     DateTime    @default(now())
