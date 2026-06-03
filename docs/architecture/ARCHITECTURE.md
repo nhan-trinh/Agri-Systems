@@ -147,8 +147,8 @@ NODE_ENV=development
 PORT=3000
 API_VERSION=v1
 
-# PostgreSQL
-DATABASE_URL=postgresql://user:pass@localhost:5432/agritrace
+# supabase
+DATABASE_URL=postgresql://postgres.tkmugwshskcphmivjupv:[EMAIL_ADDRESS]:5432/postgres
 
 # MongoDB
 MONGO_URL=mongodb://localhost:27017/agritrace_logs

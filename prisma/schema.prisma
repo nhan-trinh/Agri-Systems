@@ -1,0 +1,372 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== COOPERATIVE ====================
+
+model Cooperative {
+  id           String   @id @default(cuid())
+  htx_code     String   @unique   // dùng để sinh farmer_code
+  name         String
+  province     String
+  district     String
+  address      String
+  phone        String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  farmers      Farmer[]
+  users        User[]
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id             String      @id @default(cuid())
+  phone          String      @unique
+  password_hash  String
+  role           UserRole
+  cooperative_id String?
+  cooperative    Cooperative? @relation(fields: [cooperative_id], references: [id])
+  farmer_id      String?     @unique
+  is_active      Boolean     @default(true)
+  last_login_at  DateTime?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  HTX_MANAGER
+  FARMER
+  WAREHOUSE_KEEPER
+  GOV_VIEWER
+}
+
+// ==================== FARMER ====================
+
+model Farmer {
+  id             String      @id @default(cuid())
+  farmer_code    String      @unique
+  full_name      String
+  phone          String      @unique
+  national_id    String?
+  date_of_birth  DateTime?
+  address        String
+  cooperative_id String
+  cooperative    Cooperative @relation(fields: [cooperative_id], references: [id])
+  is_active      Boolean     @default(true)
+  deleted_at     DateTime?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+  farm_zones     FarmZone[]
+}
+
+// ==================== FARM ZONE ====================
+
+model FarmZone {
+  id             String     @id @default(cuid())
+  farm_zone_code String     @unique
+  zone_name      String
+  farmer_id      String
+  farmer         Farmer     @relation(fields: [farmer_id], references: [id])
+  crop_type      CropType
+  boundary       Json       // GeoJSON Polygon — PostGIS via raw query
+  area_sqm       Float
+  description    String?
+  is_active      Boolean    @default(true)
+  deleted_at     DateTime?
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+  seasons        Season[]
+}
+
+enum CropType {
+  RICE
+  COFFEE
+  PEPPER
+  DURIAN
+  VEGETABLE
+  OTHER
+}
+
+// ==================== SEASON ====================
+
+model Season {
+  id                String       @id @default(cuid())
+  farm_zone_id      String
+  farm_zone         FarmZone     @relation(fields: [farm_zone_id], references: [id])
+  season_name       String
+  crop_variety      String
+  start_date        DateTime
+  expected_end_date DateTime
+  actual_end_date   DateTime?
+  planned_yield_kg  Float
+  actual_yield_kg   Float?
+  status            SeasonStatus @default(ACTIVE)
+  created_by        String
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+  farming_logs      FarmingLog[]
+  batch             Batch?
+  carbon_record     CarbonRecord?
+}
+
+enum SeasonStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ==================== FARMING LOG ====================
+
+model FarmingLog {
+  id              String       @id @default(cuid())
+  season_id       String
+  season          Season       @relation(fields: [season_id], references: [id])
+  activity_date   DateTime     @db.Date
+  activity_type   ActivityType
+  notes           String?
+  fertilizer_type String?
+  quantity_kg     Float?
+  product_name    String?
+  dosage          Float?
+  unit            String?
+  water_volume_m3 Float?
+  duration_hours  Float?
+  yield_kg        Float?
+  harvest_method  String?
+  photo_urls      String[]
+  created_by      String
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+}
+
+enum ActivityType {
+  SEEDING
+  FERTILIZING
+  PESTICIDE
+  IRRIGATION
+  HARVESTING
+  OTHER
+}
+
+// ==================== BATCH & QR ====================
+
+model Batch {
+  id                    String      @id @default(cuid())
+  batch_code            String      @unique
+  season_id             String      @unique
+  season                Season      @relation(fields: [season_id], references: [id])
+  batch_name            String
+  total_weight_kg       Float
+  quantity_qr_requested Int
+  packaging_unit        String
+  product_description   String?
+  status                BatchStatus @default(DRAFT)
+  checkvn_batch_id      String?
+  activated_at          DateTime?
+  activation_note       String?
+  recalled_at           DateTime?
+  recall_reason         String?
+  created_by            String
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+  qr_codes              QrCode[]
+}
+
+model QrCode {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  batch_id     String
+  batch        Batch     @relation(fields: [batch_id], references: [id])
+  status       QrStatus  @default(INACTIVE)
+  activated_at DateTime?
+  recalled_at  DateTime?
+  created_at   DateTime  @default(now())
+
+  @@index([code])
+  @@index([batch_id, status])
+}
+
+enum BatchStatus {
+  DRAFT
+  PENDING_QR
+  QR_RECEIVED
+  ACTIVATING
+  ACTIVE
+  RECALLED
+}
+
+enum QrStatus {
+  INACTIVE
+  ACTIVE
+  RECALLED
+}
+
+// ==================== CARBON ====================
+
+model EmissionFactor {
+  id             String   @id @default(cuid())
+  material_type  String
+  factor_value   Float
+  unit           String
+  description    String
+  source         String
+  effective_from DateTime
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+}
+
+model CarbonRecord {
+  id                   String       @id @default(cuid())
+  season_id            String       @unique
+  season               Season       @relation(fields: [season_id], references: [id])
+  total_emitted_kg     Float
+  total_sequestered_kg Float
+  net_carbon_tCO2e     Float
+  status               CarbonStatus @default(DRAFT)
+  calculation_details  Json
+  verified_by          String?
+  verified_at          DateTime?
+  issued_at            DateTime?
+  certificate_no       String?      @unique
+  credit_amount_tCO2e  Float?
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @updatedAt
+}
+
+enum CarbonStatus {
+  DRAFT
+  VERIFIED
+  ISSUED
+}
+
+// ==================== WAREHOUSE ====================
+
+model Material {
+  id              String       @id @default(cuid())
+  cooperative_id  String
+  material_name   String
+  material_type   MaterialType
+  unit            String
+  min_stock_alert Float        @default(0)
+  is_active       Boolean      @default(true)
+  created_at      DateTime     @default(now())
+  stock_item      StockItem?
+  transactions    WarehouseTransaction[]
+}
+
+model StockItem {
+  id            String   @id @default(cuid())
+  material_id   String   @unique
+  material      Material @relation(fields: [material_id], references: [id])
+  current_stock Float    @default(0)
+  expiry_date   DateTime?
+  updated_at    DateTime @updatedAt
+}
+
+model WarehouseTransaction {
+  id                  String          @id @default(cuid())
+  material_id         String
+  material            Material        @relation(fields: [material_id], references: [id])
+  transaction_type    TransactionType
+  quantity            Float
+  unit_price          Float?
+  supplier            String?
+  invoice_no          String?
+  recipient_farmer_id String?
+  purpose             String?
+  transaction_date    DateTime
+  expiry_date         DateTime?
+  notes               String?
+  created_by          String
+  created_at          DateTime        @default(now())
+}
+
+enum MaterialType {
+  SEED
+  FERTILIZER
+  PESTICIDE
+  EQUIPMENT
+  OTHER
+}
+
+enum TransactionType {
+  IMPORT
+  EXPORT
+  RETURN
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id         String   @id @default(cuid())
+  user_id    String
+  event      String
+  title      String
+  body       String
+  metadata   Json?
+  is_read    Boolean  @default(false)
+  read_at    DateTime?
+  created_at DateTime @default(now())
+
+  @@index([user_id, is_read])
+  @@index([user_id, created_at])
+}
+
+// ==================== OCR & EXPORT JOBS ====================
+
+model OcrJob {
+  id            String     @id @default(cuid())
+  file_url      String
+  document_type OcrDocType
+  status        OcrStatus  @default(PENDING)
+  error_message String?
+  confirmed_at  DateTime?
+  confirmed_by  String?
+  created_by    String
+  created_at    DateTime   @default(now())
+}
+
+model ExportJob {
+  id           String       @id @default(cuid())
+  report_type  String
+  format       ExportFormat
+  filters      Json
+  status       ExportStatus @default(PENDING)
+  download_url String?
+  expires_at   DateTime?
+  created_by   String
+  created_at   DateTime     @default(now())
+}
+
+enum OcrDocType {
+  FARMING_LOG
+  INVOICE
+}
+
+enum OcrStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CONFIRMED
+  FAILED
+  REJECTED
+}
+
+enum ExportFormat {
+  EXCEL
+  PDF
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
