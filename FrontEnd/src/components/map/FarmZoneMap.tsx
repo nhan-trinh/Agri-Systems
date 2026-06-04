@@ -1,10 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMapEvents, LayersControl, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, Marker, useMapEvents, LayersControl, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Sprout } from 'lucide-react';
+import { Sprout, Navigation, Loader2 } from 'lucide-react';
+
+// Helper component to programmatically pan/re-center Leaflet Map
+function RecenterMap({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
 
 // Custom modern Leaflet DivIcon for drawing vertices
 const createVertexIcon = (index: number, isFirst: boolean) => {
@@ -89,6 +98,31 @@ export function FarmZoneMap({
     }
   }, [selectedZoneId, zones, isDrawing, drawingPoints]);
 
+  const [locating, setLocating] = useState(false);
+
+  const locateUser = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setMapCenter([latitude, longitude]);
+        setLocating(false);
+      },
+      (error) => {
+        console.error('Lỗi định vị:', error);
+        alert('Không thể lấy vị trí hiện tại. Vui lòng cho phép quyền truy cập vị trí trên trình duyệt.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleMapClick = (lat: number, lng: number) => {
     if (!isDrawing || !onDrawingPointsChange) return;
     
@@ -152,6 +186,7 @@ export function FarmZoneMap({
         scrollWheelZoom={true}
         className="z-10"
       >
+        <RecenterMap center={mapCenter} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Bản đồ đường đi">
             <TileLayer
@@ -272,6 +307,20 @@ export function FarmZoneMap({
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={locateUser}
+            disabled={locating}
+            className="w-full flex items-center justify-center gap-1.5 bg-[#1b4332] hover:bg-[#143225] text-white py-2 px-3 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 shadow-sm"
+          >
+            {locating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Navigation className="h-3.5 w-3.5 rotate-45 text-emerald-300 fill-emerald-300" />
+            )}
+            {locating ? 'Đang định vị GPS...' : '📍 Định vị vị trí của tôi'}
+          </button>
 
           <div className="flex gap-2 justify-between border-t border-[#e6ebe3] pt-3">
             <button
