@@ -24,9 +24,9 @@ Dưới đây là kế hoạch triển khai chi tiết dựa trên sơ đồ quy
 - [x] Vô hiệu hóa tài khoản nông dân: Cập nhật `is_active = false` (không xóa cứng khỏi database nếu đã có dữ liệu liên quan).
 
 #### 2. Thiết lập Vùng trồng (Farm Zones)
-- [ ] Tích hợp bản đồ GPS vẽ ranh giới vùng trồng dạng Polygon (GeoJSON).
-- [ ] Tính năng tự động tính toán diện tích ($m^2$) từ Polygon.
-- [ ] Gọi API kiểm tra chồng chéo diện tích (Overlap check) qua PostGIS trước khi lưu.
+- [x] Tích hợp bản đồ GPS vẽ ranh giới vùng trồng dạng Polygon (GeoJSON).
+- [x] Tính năng tự động tính toán diện tích ($m^2$) từ Polygon.
+- [x] Gọi API kiểm tra chồng chéo diện tích (Overlap check) qua PostGIS trước khi lưu.
 
 ---
 

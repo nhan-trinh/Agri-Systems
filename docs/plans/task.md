@@ -7,3 +7,12 @@
 | task-5 | Update Prisma Schema & Generate Prisma Client | completed | |
 | task-6 | Implement Validation Tests for Farmer DTO | completed | |
 | task-7 | Create and Apply Migration | completed | Using db push to sync schema directly. |
+| task-8 | Create farm-zone.dto.ts with Zod schemas | completed | |
+| task-9 | Implement database queries in farm-zone.repository.ts | completed | |
+| task-10 | Implement business logic in farm-zone.service.ts | completed | |
+| task-11 | Implement endpoints in farm-zone.controller.ts and router | completed | |
+| task-12 | Write tests in farm-zone.test.ts | completed | |
+| task-13 | Run backend tests and verify build | completed | |
+| task-14 | Implement FrontEnd FarmZoneMap Leaflet drawing component | completed | |
+| task-15 | Implement FrontEnd farm-zones/page.tsx CRUD | completed | |
+| task-16 | Verify frontend build and perform manual test verification | completed | |
