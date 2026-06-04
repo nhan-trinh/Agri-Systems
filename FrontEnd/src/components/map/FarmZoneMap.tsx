@@ -7,11 +7,11 @@ import 'leaflet/dist/leaflet.css';
 import { Sprout, Navigation, Loader2 } from 'lucide-react';
 
 // Helper component to programmatically pan/re-center Leaflet Map
-function RecenterMap({ center }: { center: [number, number] }) {
+function RecenterMap({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -81,6 +81,7 @@ export function FarmZoneMap({
   zoom = 13,
 }: FarmZoneMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>(center);
+  const [mapZoom, setMapZoom] = useState<number>(zoom);
 
   // Auto-center map based on selected zone or drawn points
   useEffect(() => {
@@ -89,12 +90,14 @@ export function FarmZoneMap({
       if (zone && zone.boundary && zone.boundary.coordinates) {
         const coords = zone.boundary.coordinates[0];
         if (coords.length > 0) {
-          // Centering to the first coordinate
+          // Centering to the first coordinate and zoom in close
           setMapCenter([coords[0][1], coords[0][0]]);
+          setMapZoom(17);
         }
       }
     } else if (isDrawing && drawingPoints.length > 0) {
       setMapCenter(drawingPoints[drawingPoints.length - 1]);
+      setMapZoom(17);
     }
   }, [selectedZoneId, zones, isDrawing, drawingPoints]);
 
@@ -112,6 +115,7 @@ export function FarmZoneMap({
       (position) => {
         const { latitude, longitude } = position.coords;
         setMapCenter([latitude, longitude]);
+        setMapZoom(17); // Zoom close to user GPS location
         setLocating(false);
       },
       (error) => {
@@ -186,7 +190,7 @@ export function FarmZoneMap({
         scrollWheelZoom={true}
         className="z-10"
       >
-        <RecenterMap center={mapCenter} />
+        <RecenterMap center={mapCenter} zoom={mapZoom} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Bản đồ đường đi">
             <TileLayer
