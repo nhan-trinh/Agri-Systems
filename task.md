@@ -18,10 +18,10 @@ Dưới đây là kế hoạch triển khai chi tiết dựa trên sơ đồ quy
 *Mục tiêu: Thiết lập hồ sơ nông dân và số hóa ranh giới vùng trồng.*
 
 #### 1. Quản lý hồ sơ Nông dân
-- [ ] Tạo mới hồ sơ nông dân: `POST /farmers` (Tự động sinh mã `farmer_code` định dạng `HTX_CODE-YYYY-NNNN`).
-- [ ] Sửa đổi hồ sơ nông dân: `PUT /farmers/:id`.
-- [ ] Xem danh sách nông dân thuộc HTX: `GET /farmers` (bắt buộc kiểm tra `cooperative_id`).
-- [ ] Vô hiệu hóa tài khoản nông dân: Cập nhật `is_active = false` (không xóa cứng khỏi database nếu đã có dữ liệu liên quan).
+- [x] Tạo mới hồ sơ nông dân: `POST /farmers` (Tự động sinh mã `farmer_code` định dạng `HTX_CODE-YYYY-NNNN`).
+- [x] Sửa đổi hồ sơ nông dân: `PUT /farmers/:id`.
+- [x] Xem danh sách nông dân thuộc HTX: `GET /farmers` (bắt buộc kiểm tra `cooperative_id`).
+- [x] Vô hiệu hóa tài khoản nông dân: Cập nhật `is_active = false` (không xóa cứng khỏi database nếu đã có dữ liệu liên quan).
 
 #### 2. Thiết lập Vùng trồng (Farm Zones)
 - [ ] Tích hợp bản đồ GPS vẽ ranh giới vùng trồng dạng Polygon (GeoJSON).
