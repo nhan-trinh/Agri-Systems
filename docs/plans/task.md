@@ -2,6 +2,7 @@
 
 | id | task | status | notes |
 | --- | --- | --- | --- |
+<<<<<<< HEAD
 | setup-1 | Initialize configurations & Prisma | completed | Docker, Prisma, TS |
 | setup-2 | Setup Express core & 10 modules | completed | Scaffolding 10 modules core |
 | phase-1-1 | Schema: Cập nhật User model cho Zalo Auth | completed | zalo_id, is_first_login, password_hash nullable |
@@ -28,3 +29,21 @@
 | phase-7-2 | Module Carbon: Xét duyệt & Cấp tín chỉ Carbon | todo | BR-006: Duyệt VERIFIED -> ISSUED |
 | phase-8-1 | Module Reporting: Báo cáo tổng hợp Gov Viewer | todo | BR-008: Aggregate reports, Export Async |
 | phase-8-2 | Module Notification: Hệ thống thông báo | todo | Báo khi OCR xong, Carbon cấp, hết hạn QR |
+=======
+| task-1 | Initialize configurations | completed | |
+| task-2 | Setup Prisma schema | completed | |
+| task-3 | Setup Express core infrastructure | completed | |
+| task-4 | Scaffolding 10 modules | completed | |
+| task-5 | Update Prisma Schema & Generate Prisma Client | completed | |
+| task-6 | Implement Validation Tests for Farmer DTO | completed | |
+| task-7 | Create and Apply Migration | completed | Using db push to sync schema directly. |
+| task-8 | Create farm-zone.dto.ts with Zod schemas | completed | |
+| task-9 | Implement database queries in farm-zone.repository.ts | completed | |
+| task-10 | Implement business logic in farm-zone.service.ts | completed | |
+| task-11 | Implement endpoints in farm-zone.controller.ts and router | completed | |
+| task-12 | Write tests in farm-zone.test.ts | completed | |
+| task-13 | Run backend tests and verify build | completed | |
+| task-14 | Implement FrontEnd FarmZoneMap Leaflet drawing component | completed | |
+| task-15 | Implement FrontEnd farm-zones/page.tsx CRUD | completed | |
+| task-16 | Verify frontend build and perform manual test verification | completed | |
+>>>>>>> d2b5dd70acbdf0cc2556f56ad80b63903d6bb3b6

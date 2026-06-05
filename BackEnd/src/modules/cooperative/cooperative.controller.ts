@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { carbonService } from './carbon.service';
+import { cooperativeService } from './cooperative.service';
 import responseHelper from '../../shared/utils/response.helper';
 
-export class CarbonController {
+export class CooperativeController {
   public getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factors = await carbonService.getAllEmissionFactors();
-      responseHelper.success(res, factors);
+      const coops = await cooperativeService.getAllCooperatives();
+      responseHelper.success(res, coops);
     } catch (error) {
       next(error);
     }
@@ -14,8 +14,8 @@ export class CarbonController {
 
   public getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factor = await carbonService.getEmissionFactorById(req.params.id);
-      responseHelper.success(res, factor);
+      const coop = await cooperativeService.getCooperativeById(req.params.id);
+      responseHelper.success(res, coop);
     } catch (error) {
       next(error);
     }
@@ -23,8 +23,8 @@ export class CarbonController {
 
   public create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factor = await carbonService.createEmissionFactor(req.body);
-      responseHelper.success(res, factor, 201);
+      const coop = await cooperativeService.createCooperative(req.body);
+      responseHelper.success(res, coop, 201);
     } catch (error) {
       next(error);
     }
@@ -32,8 +32,8 @@ export class CarbonController {
 
   public update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factor = await carbonService.updateEmissionFactor(req.params.id, req.body);
-      responseHelper.success(res, factor);
+      const coop = await cooperativeService.updateCooperative(req.params.id, req.body);
+      responseHelper.success(res, coop);
     } catch (error) {
       next(error);
     }
@@ -41,12 +41,12 @@ export class CarbonController {
 
   public delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const factor = await carbonService.deleteEmissionFactor(req.params.id);
-      responseHelper.success(res, factor);
+      const coop = await cooperativeService.deleteCooperative(req.params.id);
+      responseHelper.success(res, coop);
     } catch (error) {
       next(error);
     }
   };
 }
 
-export const carbonController = new CarbonController();
+export const cooperativeController = new CooperativeController();

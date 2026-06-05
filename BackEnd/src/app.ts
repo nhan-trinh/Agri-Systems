@@ -49,6 +49,7 @@ import carbonRouter from './modules/carbon/carbon.router';
 import reportingRouter from './modules/reporting/reporting.router';
 import notificationRouter from './modules/notification/notification.router';
 import ocrRouter from './modules/ocr/ocr.router';
+import cooperativeRouter from './modules/cooperative/cooperative.router';
 
 // Global API Router Placeholder
 const apiRouter = express.Router();
@@ -64,6 +65,7 @@ apiRouter.use('/carbon', carbonRouter);
 apiRouter.use('/reports', reportingRouter);
 apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/ocr', ocrRouter);
+apiRouter.use('/cooperatives', cooperativeRouter);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 

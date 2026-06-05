@@ -73,6 +73,8 @@ model Farmer {
   created_at     DateTime    @default(now())
   updated_at     DateTime    @updatedAt
   farm_zones     FarmZone[]
+
+  @@index([cooperative_id])
 }
 
 // ==================== FARM ZONE ====================
