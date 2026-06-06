@@ -3,24 +3,26 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==================== COOPERATIVE ====================
 
 model Cooperative {
-  id           String   @id @default(cuid())
-  htx_code     String   @unique   // dùng để sinh farmer_code
+  id           String     @id @default(cuid())
+  htx_code     String     @unique   // dùng để sinh farmer_code
   name         String
   province     String
   district     String
   address      String
   phone        String?
-  is_active    Boolean  @default(true)
-  created_at   DateTime @default(now())
+  is_active    Boolean    @default(true)
+  created_at   DateTime   @default(now())
   farmers      Farmer[]
   users        User[]
+  materials    Material[]
 }
 
 // ==================== USER & AUTH ====================
@@ -262,14 +264,17 @@ enum CarbonStatus {
 model Material {
   id              String       @id @default(cuid())
   cooperative_id  String
+  cooperative     Cooperative  @relation(fields: [cooperative_id], references: [id])
   material_name   String
   material_type   MaterialType
-  unit            String
+  unit            String       // "kg", "lít", "gói", "bao"
   min_stock_alert Float        @default(0)
   is_active       Boolean      @default(true)
   created_at      DateTime     @default(now())
   stock_item      StockItem?
   transactions    WarehouseTransaction[]
+
+  @@index([cooperative_id, is_active])
 }
 
 model StockItem {
@@ -286,17 +291,22 @@ model WarehouseTransaction {
   material_id         String
   material            Material        @relation(fields: [material_id], references: [id])
   transaction_type    TransactionType
-  quantity            Float
+  quantity            Float           // luôn dương — service tự trừ/cộng theo type
   unit_price          Float?
   supplier            String?
   invoice_no          String?
   recipient_farmer_id String?
   purpose             String?
   transaction_date    DateTime
-  expiry_date         DateTime?
+  expiry_date         DateTime?       // hạn sử dụng lô hàng nhập
   notes               String?
-  created_by          String
+  created_by          String          // userId
+  // KHÔNG có updated_at — BR-005-5: phiếu đã tạo là bất biến
   created_at          DateTime        @default(now())
+
+  @@index([material_id, transaction_type])
+  @@index([recipient_farmer_id])
+  @@index([transaction_date])
 }
 
 enum MaterialType {
