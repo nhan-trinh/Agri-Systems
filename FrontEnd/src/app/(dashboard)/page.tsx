@@ -146,20 +146,20 @@ export default function DashboardPage() {
               </p>
             </Link>
 
-            <div className="bg-white p-6 rounded-2xl border border-[#e6ebe3] opacity-75 shadow-sm relative group cursor-not-allowed">
-              <div className="bg-emerald-50 text-[#1b4332] p-3 rounded-xl w-fit">
+            <Link 
+              href="/seasons"
+              className="bg-white p-6 rounded-2xl border border-[#e6ebe3] hover:border-emerald-500 shadow-sm transition-all duration-300 hover:shadow-md group"
+            >
+              <div className="bg-emerald-50 text-[#1b4332] p-3 rounded-xl w-fit group-hover:bg-[#1b4332] group-hover:text-white transition-all">
                 <Calendar className="h-6 w-6" />
               </div>
-              <span className="absolute top-4 right-4 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200 uppercase">
-                Phase 2
-              </span>
-              <h3 className="font-serif text-lg font-bold text-stone-800 mt-4">
+              <h3 className="font-serif text-lg font-bold text-stone-800 mt-4 group-hover:text-[#1b4332]">
                 Theo dõi Vụ mùa
               </h3>
               <p className="text-stone-500 text-xs mt-1">
-                Khai báo giống lúa, phân đạm và giám sát nhật ký làm ruộng. (Sắp ra mắt)
+                Khai báo vụ mùa nông sản, ghi chép nhật ký bón phân, tưới nước, và đóng vụ mùa.
               </p>
-            </div>
+            </Link>
           </div>
         )}
 

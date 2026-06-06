@@ -50,6 +50,7 @@ import reportingRouter from './modules/reporting/reporting.router';
 import notificationRouter from './modules/notification/notification.router';
 import ocrRouter from './modules/ocr/ocr.router';
 import cooperativeRouter from './modules/cooperative/cooperative.router';
+import seasonRouter from './modules/season/season.router';
 
 // Global API Router Placeholder
 const apiRouter = express.Router();
@@ -66,6 +67,7 @@ apiRouter.use('/reports', reportingRouter);
 apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/ocr', ocrRouter);
 apiRouter.use('/cooperatives', cooperativeRouter);
+apiRouter.use('/seasons', seasonRouter);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 

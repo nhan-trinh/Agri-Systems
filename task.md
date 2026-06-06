@@ -34,13 +34,13 @@ Dưới đây là kế hoạch triển khai chi tiết dựa trên sơ đồ quy
 *Mục tiêu: Khai báo vụ canh tác và theo dõi hoạt động sản xuất.*
 
 #### 1. Quản lý Vụ mùa
-- [ ] Mở vụ mùa mới: `POST /seasons` (Khai báo giống cây, sản lượng dự kiến, ngày bắt đầu/kết thúc).
-- [ ] Ràng buộc: Mỗi vùng trồng chỉ được có tối đa 1 vụ mùa ở trạng thái hoạt động (`ACTIVE`) tại một thời điểm.
-- [ ] Đóng vụ mùa sau khi thu hoạch (`COMPLETED`) và ghi nhận sản lượng thực tế.
+- [x] Mở vụ mùa mới: `POST /seasons` (Khai báo giống cây, sản lượng dự kiến, ngày bắt đầu/kết thúc).
+- [x] Ràng buộc: Mỗi vùng trồng chỉ được có tối đa 1 vụ mùa ở trạng thái hoạt động (`ACTIVE`) tại một thời điểm.
+- [x] Đóng vụ mùa sau khi thu hoạch (`COMPLETED`) và ghi nhận sản lượng thực tế.
 
 #### 2. Nhật ký Canh tác (Farming Logs)
-- [ ] Theo dõi và phê duyệt nhật ký canh tác do nông dân gửi lên (bón phân, phun thuốc, tưới nước).
-- [ ] Giao diện cho phép HTX Manager ghi nhật ký hộ cho các nông dân không sử dụng smartphone.
+- [x] Theo dõi và phê duyệt nhật ký canh tác do nông dân gửi lên (bón phân, phun thuốc, tưới nước).
+- [x] Giao diện cho phép HTX Manager ghi nhật ký hộ cho các nông dân không sử dụng smartphone.
 
 ---
 
