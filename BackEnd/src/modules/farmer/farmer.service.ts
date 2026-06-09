@@ -2,25 +2,87 @@ import { farmerRepository } from './farmer.repository';
 import { cooperativeRepository } from '../cooperative/cooperative.repository';
 import { AppError } from '../../shared/utils/app-error';
 import { Farmer } from '@prisma/client';
+import { getRedisClient } from '../../shared/utils/redis.client';
 
 export class FarmerService {
-  async getAllFarmers(user: any): Promise<Farmer[]> {
-    if (user.role === 'SUPER_ADMIN') {
-      return farmerRepository.findAll();
+  private async invalidateCache(farmerId?: string, cooperativeId?: string) {
+    try {
+      const redis = await getRedisClient();
+      await redis.del('farmers:list:all');
+      if (cooperativeId) {
+        await redis.del(`farmers:list:coop:${cooperativeId}`);
+      }
+      if (farmerId) {
+        await redis.del(`farmers:detail:${farmerId}`);
+      }
+    } catch (error) {
+      console.error('[Redis Error] Failed to invalidate farmer cache:', error);
     }
-    // HTX Manager chỉ xem được nông dân thuộc HTX của mình
-    return farmerRepository.findAll(user.cooperativeId);
+  }
+
+  async getAllFarmers(user: any): Promise<Farmer[]> {
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+    const cacheKey = isSuperAdmin ? 'farmers:list:all' : `farmers:list:coop:${user.cooperativeId}`;
+
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (error) {
+      console.error('[Redis Error] Failed to get farmers list cache:', error);
+    }
+
+    const farmers = isSuperAdmin
+      ? await farmerRepository.findAll()
+      : await farmerRepository.findAll(user.cooperativeId);
+
+    try {
+      const redis = await getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(farmers), { EX: 300 });
+    } catch (error) {
+      console.error('[Redis Error] Failed to set farmers list cache:', error);
+    }
+
+    return farmers;
   }
 
   async getFarmerById(id: string, user: any): Promise<Farmer> {
-    const farmer = await farmerRepository.findById(id);
+    const cacheKey = `farmers:detail:${id}`;
+    let farmer: Farmer | null = null;
+
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        farmer = JSON.parse(cached);
+      }
+    } catch (error) {
+      console.error('[Redis Error] Failed to get farmer detail cache:', error);
+    }
+
+    if (!farmer) {
+      farmer = await farmerRepository.findById(id);
+      if (farmer) {
+        try {
+          const redis = await getRedisClient();
+          await redis.set(cacheKey, JSON.stringify(farmer), { EX: 300 });
+        } catch (error) {
+          console.error('[Redis Error] Failed to set farmer detail cache:', error);
+        }
+      }
+    }
+
     if (!farmer) {
       throw new AppError('FARMER_NOT_FOUND', 404, 'Không tìm thấy nông dân');
     }
+
     // Bảo vệ quyền truy cập theo vai trò
     if (user.role !== 'SUPER_ADMIN' && farmer.cooperative_id !== user.cooperativeId) {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền xem thông tin nông dân này');
     }
+
     return farmer;
   }
 
@@ -48,10 +110,15 @@ export class FarmerService {
     const nextSerial = String(countThisYear + 1).padStart(4, '0');
     const farmerCode = `${coop.htx_code}-${currentYear}-${nextSerial}`;
 
-    return farmerRepository.create({
+    const farmer = await farmerRepository.create({
       ...data,
       farmer_code: farmerCode,
     });
+
+    // Invalidate cache
+    await this.invalidateCache(undefined, data.cooperative_id);
+
+    return farmer;
   }
 
   async updateFarmer(id: string, data: any, user: any): Promise<Farmer> {
@@ -69,16 +136,29 @@ export class FarmerService {
       throw new AppError('FORBIDDEN', 403, 'Bạn không thể thay đổi Hợp tác xã quản lý của nông dân');
     }
 
-    return farmerRepository.update(id, data);
+    const updatedFarmer = await farmerRepository.update(id, data);
+
+    // Invalidate cache
+    await this.invalidateCache(id, farmer.cooperative_id);
+    if (data.cooperative_id && data.cooperative_id !== farmer.cooperative_id) {
+      await this.invalidateCache(undefined, data.cooperative_id);
+    }
+
+    return updatedFarmer;
   }
 
   async toggleFarmerStatus(id: string, user: any): Promise<Farmer> {
     const farmer = await this.getFarmerById(id, user);
     
     // Đảo ngược trạng thái hoạt động thay vì xóa cứng (BR-001-4)
-    return farmerRepository.update(id, {
+    const updatedFarmer = await farmerRepository.update(id, {
       is_active: !farmer.is_active,
     });
+
+    // Invalidate cache
+    await this.invalidateCache(id, farmer.cooperative_id);
+
+    return updatedFarmer;
   }
 }
 
