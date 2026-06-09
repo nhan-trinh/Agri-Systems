@@ -62,8 +62,27 @@
 | task-25 | Implement FrontEnd seasons/page.tsx Split View page | completed | |
 | task-26 | Activate Season link card on Dashboard page.tsx | completed | |
 | task-27 | Verify frontend build and perform manual verification | completed | |
+<<<<<<< HEAD
 | task-28 | Brainstorm & Design Farmer Redis Cache | completed | |
 | task-29 | Write design doc for Farmer Redis Cache | completed | |
 | task-30 | Implement Redis cache logic in farmer.service.ts | completed | |
 | task-31 | Add unit/integration tests for farmer caching | completed | |
 | task-32 | Verify implementation & benchmark latency | completed | |
+=======
+| task-28 | Update Sidebar.tsx role access for /warehouse | completed | |
+| task-29 | Create helper components: TransactionTypeTag & StockAlertBanner | completed | |
+| task-30 | Create component tables: MaterialTable & StockTable | completed | |
+| task-31 | Create component tables: TransactionTable & ReconciliationTable | completed | |
+| task-32 | Create modal: MaterialFormModal | completed | |
+| task-33 | Create modal: ImportModal | completed | |
+| task-34 | Create modal: ExportModal with expiration/stock verification | completed | |
+| task-35 | Create modal: ReturnModal | completed | |
+| task-36 | Build main Stock Page: app/(dashboard)/warehouse/page.tsx | completed | |
+| task-37 | Build Materials Page: app/(dashboard)/warehouse/materials/page.tsx | completed | |
+| task-38 | Build Transactions Page: app/(dashboard)/warehouse/transactions/page.tsx | completed | |
+| task-39 | Build Reconciliation Page: app/(dashboard)/warehouse/reconciliation/page.tsx | completed | |
+| task-40 | Run production build check on Web-Admin | completed | |
+| task-41 | Run existing Web-Admin frontend tests | completed | |
+| task-42 | Perform manual verification and write walkthrough | pending | |
+
+>>>>>>> a329ae114216b23ffd3b5f4d296751b6884b6d9e

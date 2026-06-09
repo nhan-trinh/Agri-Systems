@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 import app from './app';
 import config from './config/app.config';
 import prisma from './prisma/client';
