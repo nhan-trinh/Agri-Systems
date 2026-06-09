@@ -78,7 +78,7 @@ export function Sidebar() {
       title: 'Kho vật tư',
       href: '/warehouse',
       icon: Package,
-      roles: ['WAREHOUSE_KEEPER'],
+      roles: ['HTX_MANAGER', 'WAREHOUSE_KEEPER'],
     },
     {
       title: 'Báo cáo giám sát',
