@@ -4,49 +4,53 @@ import prisma from './prisma/client';
 import mongoose from 'mongoose';
 import { getRedisClient, disconnectRedis } from './shared/utils/redis.client';
 
-const server = app.listen(config.port, async () => {
-  console.log(`Server is running in ${config.env} mode on port ${config.port}`);
-  
-  // Connect to PostgreSQL
+const startServer = async () => {
+  // ✅ Connect DB trước, listen sau
   try {
     await prisma.$connect();
-    console.log('PostgreSQL Database connected successfully via Prisma');
-  } catch (error) {
-    console.error('Failed to connect to PostgreSQL Database:', error);
-  }
+    console.log('PostgreSQL connected');
 
-  // Connect to MongoDB
-  try {
     await mongoose.connect(config.mongoUrl);
-    console.log('MongoDB connected successfully via Mongoose');
-  } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
-  }
+    console.log('MongoDB connected');
 
-  // Connect to Redis
-  try {
     await getRedisClient();
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    console.error('Failed to connect to databases:', error);
+    process.exit(1); // không chạy nếu DB lỗi
   }
-});
 
-// Handle graceful shutdown
-const gracefulShutdown = async (signal: string) => {
-  console.log(`Received ${signal}. Shutting down gracefully...`);
-  server.close(async () => {
-    console.log('HTTP server closed.');
-    try {
-      await prisma.$disconnect();
-      await mongoose.disconnect();
-      await disconnectRedis();
-      console.log('Database connections closed.');
-    } catch (error) {
-      console.error('Error during database disconnection:', error);
-    }
-    process.exit(0);
+  const server = app.listen(config.port, () => {
+    console.log(`Server running in ${config.env} on port ${config.port}`);
   });
+
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`Received ${signal}. Shutting down...`);
+
+    // ✅ Timeout 10s phòng trường hợp treo
+    const forceExit = setTimeout(() => {
+      console.error('Forced exit after timeout');
+      process.exit(1);
+    }, 10_000);
+
+    server.close(async () => {
+      try {
+        await Promise.all([
+          prisma.$disconnect(),
+          mongoose.disconnect(),
+          disconnectRedis(),
+        ]);
+        console.log('All connections closed.');
+      } catch (err) {
+        console.error('Error during shutdown:', err);
+      } finally {
+        clearTimeout(forceExit);
+        process.exit(0);
+      }
+    });
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+startServer();

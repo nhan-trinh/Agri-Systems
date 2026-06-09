@@ -1,43 +1,39 @@
 import { createClient, RedisClientType } from 'redis';
 import config from '../../config/app.config';
 
-let redisClient: RedisClientType;
-let isConnected = false;
+let redisClient: RedisClientType | null = null;
+let connectingPromise: Promise<RedisClientType> | null = null; // chống race condition
 
-/**
- * Get or create a singleton Redis client.
- * Uses the REDIS_URL from environment config.
- */
 export const getRedisClient = async (): Promise<RedisClientType> => {
-  if (isConnected && redisClient) {
-    return redisClient;
-  }
+  if (redisClient?.isReady) return redisClient;
 
-  redisClient = createClient({
-    url: config.redisUrl,
-  }) as RedisClientType;
+  // Nếu đang trong quá trình connect thì chờ, không tạo client mới
+  if (connectingPromise) return connectingPromise;
 
-  redisClient.on('error', (err) => {
-    console.error('Redis Client Error:', err.message);
-  });
+  connectingPromise = (async () => {
+    redisClient = createClient({ url: config.redisUrl }) as RedisClientType;
 
-  redisClient.on('connect', () => {
+    redisClient.on('error', (err) => {
+      console.error('Redis Client Error:', err.message);
+    });
+
+    redisClient.on('reconnecting', () => {
+      console.warn('Redis reconnecting...');
+    });
+
+    await redisClient.connect();
     console.log('Redis connected successfully');
-  });
+    connectingPromise = null;
+    return redisClient;
+  })();
 
-  await redisClient.connect();
-  isConnected = true;
-
-  return redisClient;
+  return connectingPromise;
 };
 
-/**
- * Disconnect Redis client gracefully.
- */
 export const disconnectRedis = async (): Promise<void> => {
-  if (redisClient && isConnected) {
+  if (redisClient?.isReady) {
     await redisClient.disconnect();
-    isConnected = false;
+    redisClient = null;
     console.log('Redis disconnected');
   }
 };

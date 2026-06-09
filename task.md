@@ -48,16 +48,16 @@ Dưới đây là kế hoạch triển khai chi tiết dựa trên sơ đồ quy
 *Mục tiêu: Quản lý vật tư đầu vào phân phát cho nông dân.*
 
 #### 1. Quản lý Nhập kho (Import)
-- [ ] Tạo phiếu nhập kho vật tư (phân bón, thuốc bảo vệ thực vật, hạt giống).
-- [ ] Bắt buộc nhập: hóa đơn (`invoice_no`), hạn sử dụng, nhà cung cấp.
+- [x] Tạo phiếu nhập kho vật tư (phân bón, thuốc bảo vệ thực vật, hạt giống).
+- [x] Bắt buộc nhập: hóa đơn (`invoice_no`), hạn sử dụng, nhà cung cấp.
 
 #### 2. Cấp phát Vật tư
-- [ ] Lập phiếu cấp phát vật tư từ kho HTX trực tiếp cho hộ nông dân.
-- [ ] Ràng buộc: Kiểm tra tồn kho trước khi xuất (chặn xuất âm) và chặn xuất vật tư đã quá hạn sử dụng.
+- [x] Lập phiếu cấp phát vật tư từ kho HTX trực tiếp cho hộ nông dân.
+- [x] Ràng buộc: Kiểm tra tồn kho trước khi xuất (chặn xuất âm) và chặn xuất vật tư đã quá hạn sử dụng.
 
 #### 3. Giám sát kho & Sản lượng
-- [ ] Giao diện xem tồn kho thời gian thực kèm cảnh báo hết hàng hoặc sắp hết hạn sử dụng.
-- [ ] Đối chiếu lượng vật tư cấp phát với nhật ký canh tác thực tế để đảm bảo tính minh bạch.
+- [x] API tồn kho thời gian thực kèm cảnh báo hết hàng hoặc sắp hết hạn sử dụng (Backend done — FE pending).
+- [x] Đối chiếu lượng vật tư cấp phát với nhật ký canh tác thực tế để đảm bảo tính minh bạch.
 
 ---
 
