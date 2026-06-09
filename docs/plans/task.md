@@ -62,3 +62,8 @@
 | task-25 | Implement FrontEnd seasons/page.tsx Split View page | completed | |
 | task-26 | Activate Season link card on Dashboard page.tsx | completed | |
 | task-27 | Verify frontend build and perform manual verification | completed | |
+| task-28 | Brainstorm & Design Farmer Redis Cache | completed | |
+| task-29 | Write design doc for Farmer Redis Cache | completed | |
+| task-30 | Implement Redis cache logic in farmer.service.ts | completed | |
+| task-31 | Add unit/integration tests for farmer caching | completed | |
+| task-32 | Verify implementation & benchmark latency | completed | |
