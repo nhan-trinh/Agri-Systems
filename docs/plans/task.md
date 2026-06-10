@@ -62,13 +62,6 @@
 | task-25 | Implement FrontEnd seasons/page.tsx Split View page | completed | |
 | task-26 | Activate Season link card on Dashboard page.tsx | completed | |
 | task-27 | Verify frontend build and perform manual verification | completed | |
-<<<<<<< HEAD
-| task-28 | Brainstorm & Design Farmer Redis Cache | completed | |
-| task-29 | Write design doc for Farmer Redis Cache | completed | |
-| task-30 | Implement Redis cache logic in farmer.service.ts | completed | |
-| task-31 | Add unit/integration tests for farmer caching | completed | |
-| task-32 | Verify implementation & benchmark latency | completed | |
-=======
 | task-28 | Update Sidebar.tsx role access for /warehouse | completed | |
 | task-29 | Create helper components: TransactionTypeTag & StockAlertBanner | completed | |
 | task-30 | Create component tables: MaterialTable & StockTable | completed | |
@@ -83,6 +76,14 @@
 | task-39 | Build Reconciliation Page: app/(dashboard)/warehouse/reconciliation/page.tsx | completed | |
 | task-40 | Run production build check on Web-Admin | completed | |
 | task-41 | Run existing Web-Admin frontend tests | completed | |
-| task-42 | Perform manual verification and write walkthrough | pending | |
-
->>>>>>> a329ae114216b23ffd3b5f4d296751b6884b6d9e
+| task-42 | Perform manual verification and write walkthrough | completed | |
+| task-43 | Brainstorm & Design Farmer Redis Cache | completed | |
+| task-44 | Write design doc for Farmer Redis Cache | completed | |
+| task-45 | Implement Redis cache logic in farmer.service.ts | completed | |
+| task-46 | Add unit/integration tests for farmer caching | completed | |
+| task-47 | Verify implementation & benchmark latency | completed | |
+| task-48 | Brainstorm & Design Phase 4 CheckVN & QR | in_progress | |
+| task-49 | Write design doc for Phase 4 CheckVN & QR | todo | |
+| task-50 | Implement Phase 4 CheckVN & QR backend APIs | todo | |
+| task-51 | Add unit/integration tests for Phase 4 | todo | |
+| task-52 | Verify implementation & build | todo | |
