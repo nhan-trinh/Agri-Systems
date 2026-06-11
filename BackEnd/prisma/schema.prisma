@@ -193,14 +193,16 @@ model Batch {
 }
 
 model QrCode {
-  id           String    @id @default(cuid())
-  code         String    @unique
-  batch_id     String
-  batch        Batch     @relation(fields: [batch_id], references: [id])
-  status       QrStatus  @default(INACTIVE)
-  activated_at DateTime?
-  recalled_at  DateTime?
-  created_at   DateTime  @default(now())
+  id              String    @id @default(cuid())
+  code            String    @unique
+  batch_id        String
+  batch           Batch     @relation(fields: [batch_id], references: [id])
+  status          QrStatus  @default(INACTIVE)
+  activated_at    DateTime?
+  recalled_at     DateTime?
+  scan_count      Int       @default(0)
+  last_scanned_at DateTime?
+  created_at      DateTime  @default(now())
 
   @@index([code])
   @@index([batch_id, status])

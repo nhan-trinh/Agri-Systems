@@ -51,6 +51,7 @@ import notificationRouter from './modules/notification/notification.router';
 import ocrRouter from './modules/ocr/ocr.router';
 import cooperativeRouter from './modules/cooperative/cooperative.router';
 import seasonRouter from './modules/season/season.router';
+import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
 
 // Global API Router Placeholder
 const apiRouter = express.Router();
@@ -70,6 +71,9 @@ apiRouter.use('/cooperatives', cooperativeRouter);
 apiRouter.use('/seasons', seasonRouter);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
+
+// Public Trace Root Endpoint
+app.get('/public/trace/:qrCode', checkvnQrController.publicTrace);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

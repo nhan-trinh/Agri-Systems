@@ -6,6 +6,7 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
   apiVersion: process.env.API_VERSION || 'v1',
+  appUrl: process.env.APP_URL || 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL || '',
   mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/agritrace_logs',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
