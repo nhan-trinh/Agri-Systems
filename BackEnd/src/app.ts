@@ -69,7 +69,12 @@ apiRouter.use('/ocr', ocrRouter);
 apiRouter.use('/cooperatives', cooperativeRouter);
 apiRouter.use('/seasons', seasonRouter);
 
+import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
+
 app.use(`/api/${config.apiVersion}`, apiRouter);
+
+// Public Trace Root Endpoint
+app.get('/public/trace/:qrCode', checkvnQrController.publicTrace);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
