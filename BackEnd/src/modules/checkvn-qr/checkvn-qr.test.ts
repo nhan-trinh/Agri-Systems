@@ -96,7 +96,7 @@ describe('CheckvnQr Service Tests', () => {
     it('should create batch successfully', async () => {
       mockSeasonRepo.findById.mockResolvedValue(mockSeason);
       mockCheckvnQrRepo.findBatchBySeasonId.mockResolvedValue(null);
-      (prisma.batch.findMany as jest.Mock).mockResolvedValue([]);
+      mockCheckvnQrRepo.findBatchesByCodePrefix.mockResolvedValue([]);
       mockCheckvnQrRepo.createBatch.mockResolvedValue(mockBatch);
 
       const data = {
@@ -159,6 +159,23 @@ describe('CheckvnQr Service Tests', () => {
 
       await expect(checkvnQrService.createBatch(data, mockUser)).rejects.toThrow(
         'Khối lượng lô hàng vượt quá sản lượng thu hoạch thực tế'
+      );
+    });
+
+    it('should throw error if user belongs to different cooperative', async () => {
+      mockSeasonRepo.findById.mockResolvedValue(mockSeason);
+      const invalidUser = { ...mockUser, cooperative_id: 'coop-different' };
+
+      const data = {
+        season_id: 'season-001',
+        batch_name: 'Gạo ST25',
+        total_weight_kg: 4000,
+        quantity_qr: 10,
+        packaging_unit: 'Túi 5kg',
+      };
+
+      await expect(checkvnQrService.createBatch(data, invalidUser)).rejects.toThrow(
+        'Bạn không có quyền tạo lô hàng cho vụ mùa này'
       );
     });
   });

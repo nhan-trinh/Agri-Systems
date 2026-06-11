@@ -12,6 +12,14 @@ export interface CreateBatchDbInput {
   created_by: string;
 }
 
+export interface BatchStatusUpdateData {
+  checkvn_batch_id?: string;
+  activated_at?: Date | null;
+  activation_note?: string | null;
+  recalled_at?: Date | null;
+  recall_reason?: string | null;
+}
+
 export class CheckvnQrRepository {
   public async createBatch(data: CreateBatchDbInput): Promise<Batch> {
     return prisma.batch.create({
@@ -109,7 +117,20 @@ export class CheckvnQrRepository {
     }) as any;
   }
 
-  public async updateBatchStatus(id: string, status: BatchStatus, updateData?: Partial<Batch>): Promise<Batch> {
+  public async findBatchesByCodePrefix(prefix: string): Promise<{ batch_code: string }[]> {
+    return prisma.batch.findMany({
+      where: {
+        batch_code: {
+          startsWith: prefix,
+        },
+      },
+      select: {
+        batch_code: true,
+      },
+    });
+  }
+
+  public async updateBatchStatus(id: string, status: BatchStatus, updateData?: BatchStatusUpdateData): Promise<Batch> {
     return prisma.batch.update({
       where: { id },
       data: {

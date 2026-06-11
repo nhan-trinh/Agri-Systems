@@ -6,7 +6,6 @@ import { AppError } from '../../shared/utils/app-error';
 import { getRedisClient } from '../../shared/utils/redis.client';
 import config from '../../config/app.config';
 import { Batch, QrCode, BatchStatus, QrStatus } from '@prisma/client';
-import prisma from '../../prisma/client';
 import { CreateBatchInput } from './checkvn-qr.dto';
 
 export class CheckvnQrService {
@@ -34,6 +33,12 @@ export class CheckvnQrService {
       throw new AppError('WEIGHT_EXCEEDS_YIELD', 422, `Khối lượng lô hàng vượt quá sản lượng thu hoạch thực tế của vụ mùa (${actualYield} kg)`);
     }
 
+    // Kiểm tra quyền sở hữu hợp tác xã (HTX_MANAGER/FARMER phải thuộc cùng cooperative)
+    const cooperativeId = season.farm_zone.farmer.cooperative_id;
+    if (user.role !== 'SUPER_ADMIN' && user.cooperative_id !== cooperativeId) {
+      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền tạo lô hàng cho vụ mùa này');
+    }
+
     // 5. BR-004-4: Tự động sinh batch_code: ZONE_CODE-YYYYMMDD-NNN
     const farmZoneCode = season.farm_zone.farm_zone_code;
     const today = new Date();
@@ -43,16 +48,7 @@ export class CheckvnQrService {
     const dateString = `${yyyy}${mm}${dd}`;
     const prefix = `${farmZoneCode}-${dateString}-`;
 
-    const existingBatches = await prisma.batch.findMany({
-      where: {
-        batch_code: {
-          startsWith: prefix,
-        },
-      },
-      select: {
-        batch_code: true,
-      },
-    });
+    const existingBatches = await checkvnQrRepository.findBatchesByCodePrefix(prefix);
 
     let maxNum = 0;
     for (const b of existingBatches) {
@@ -123,7 +119,10 @@ export class CheckvnQrService {
       .update(JSON.stringify(payload))
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    const sigBuffer = Buffer.from(signature, 'hex');
+    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
       throw new AppError('UNAUTHORIZED', 401, 'Chữ ký webhook không hợp lệ');
     }
 

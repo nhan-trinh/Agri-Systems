@@ -51,6 +51,7 @@ import notificationRouter from './modules/notification/notification.router';
 import ocrRouter from './modules/ocr/ocr.router';
 import cooperativeRouter from './modules/cooperative/cooperative.router';
 import seasonRouter from './modules/season/season.router';
+import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
 
 // Global API Router Placeholder
 const apiRouter = express.Router();
@@ -68,8 +69,6 @@ apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/ocr', ocrRouter);
 apiRouter.use('/cooperatives', cooperativeRouter);
 apiRouter.use('/seasons', seasonRouter);
-
-import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 

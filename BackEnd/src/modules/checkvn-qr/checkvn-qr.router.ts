@@ -69,11 +69,6 @@ router.post(
 );
 
 router.get(
-  '/public/trace/:qrCode',
-  checkvnQrController.publicTrace
-);
-
-router.get(
   '/trace/:qrCode',
   checkvnQrController.publicTrace
 );
