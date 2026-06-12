@@ -3,6 +3,7 @@ import { farmZoneRepository } from '../farm-zone/farm-zone.repository';
 import { AppError } from '../../shared/utils/app-error';
 import { SeasonStatus, UserRole } from '@prisma/client';
 import { JwtPayload } from '../auth/auth.types';
+import { carbonCalculationQueue } from '../../shared/queues/carbon.queue';
 
 export class SeasonService {
   public async getSeasons(user: JwtPayload, farmZoneId?: string, status?: SeasonStatus): Promise<any[]> {
@@ -110,7 +111,12 @@ export class SeasonService {
       actual_yield_kg: data.actual_yield_kg,
     };
 
-    return seasonRepository.update(id, updatePayload);
+    const updated = await seasonRepository.update(id, updatePayload);
+
+    // Trigger asynchronous carbon calculations in background worker
+    await carbonCalculationQueue.add('calculate', { seasonId: id });
+
+    return updated;
   }
 
   public async cancelSeason(id: string, user: JwtPayload): Promise<any> {
