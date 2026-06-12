@@ -50,10 +50,10 @@ export function BatchStatusTimeline({ selectedBatch }: BatchStatusTimelineProps)
               <Check className="h-3.5 w-3.5" />
             </span>
             <div>
-              <span className="text-xs font-bold text-stone-400">{creationDate}</span>
+              <span className="text-xs font-bold text-stone-400">ID: {selectedBatch.checkvn_batch_id}</span>
               <h4 className="text-sm font-bold text-stone-800 mt-0.5">Yêu cầu cấp QR</h4>
               <p className="text-xs text-stone-500 mt-1 font-semibold">
-                Gửi yêu cầu lên cổng CheckVN (ID Batch: {selectedBatch.checkvn_batch_id})
+                Gửi yêu cầu lên cổng CheckVN thành công.
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export function BatchStatusTimeline({ selectedBatch }: BatchStatusTimelineProps)
               <Check className="h-3.5 w-3.5" />
             </span>
             <div>
-              <span className="text-xs font-bold text-stone-400">{creationDate}</span>
+              <span className="text-xs font-bold text-stone-400">CheckVN → AgriTrace</span>
               <h4 className="text-sm font-bold text-stone-800 mt-0.5">Nhận mã QR thành công</h4>
               <p className="text-xs text-stone-500 mt-1 font-semibold">
                 CheckVN cấp {selectedBatch.quantity_qr_requested} mã QR liên kết thành công.

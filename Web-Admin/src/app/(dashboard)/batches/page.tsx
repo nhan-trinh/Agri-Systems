@@ -69,7 +69,7 @@ export default function BatchesPage() {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, []);
 
   // Polling loop for PENDING_QR status
   useEffect(() => {

@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, AlertTriangle } from 'lucide-react';
+import { Season } from '@/lib/types';
 
-interface Season {
-  id: string;
-  season_name: string;
-  actual_yield_kg: number | null;
-  status: string;
-}
 
 interface CreateBatchModalProps {
   isOpen: boolean;
