@@ -42,7 +42,7 @@ describe('CheckvnQr Service Tests', () => {
   const mockUser = {
     id: 'user-manager-001',
     role: 'HTX_MANAGER',
-    cooperative_id: 'coop-001',
+    cooperativeId: 'coop-001',
   };
 
   const mockSeason = {
@@ -164,7 +164,7 @@ describe('CheckvnQr Service Tests', () => {
 
     it('should throw error if user belongs to different cooperative', async () => {
       mockSeasonRepo.findById.mockResolvedValue(mockSeason);
-      const invalidUser = { ...mockUser, cooperative_id: 'coop-different' };
+      const invalidUser = { ...mockUser, cooperativeId: 'coop-different' };
 
       const data = {
         season_id: 'season-001',
@@ -195,7 +195,7 @@ describe('CheckvnQr Service Tests', () => {
 
     it('should throw error if user belongs to different cooperative', async () => {
       mockCheckvnQrRepo.findBatchById.mockResolvedValue(mockBatch as any);
-      const invalidUser = { ...mockUser, cooperative_id: 'coop-different' };
+      const invalidUser = { ...mockUser, cooperativeId: 'coop-different' };
 
       await expect(checkvnQrService.requestQrCode('batch-001', invalidUser)).rejects.toThrow(
         'Bạn không có quyền thực hiện yêu cầu cấp QR cho lô hàng này'
