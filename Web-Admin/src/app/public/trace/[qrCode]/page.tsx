@@ -90,7 +90,7 @@ export default function PublicTracePage() {
               {isInactive ? 'Sản phẩm chưa được kích hoạt' : 'Lỗi truy xuất nguồn gốc'}
             </h3>
             <p className="text-xs text-stone-500 leading-normal font-semibold">
-              {error?.message || data?.message || 'Mã QR không hợp lệ hoặc không tồn tại trên hệ thống.'}
+              {error?.message || 'Mã QR không hợp lệ hoặc không tồn tại trên hệ thống.'}
             </p>
           </div>
         </div>
