@@ -64,7 +64,7 @@ export function Sidebar() {
     },
     {
       title: 'Lô hàng & QR',
-      href: '/qr',
+      href: '/batches',
       icon: QrCode,
       roles: ['HTX_MANAGER'],
     },
