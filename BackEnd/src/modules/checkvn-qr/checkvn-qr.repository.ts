@@ -219,8 +219,13 @@ export class CheckvnQrRepository {
   }
 
   public async findQrCodeWithTrace(qrCodeValue: string): Promise<(QrCode & { batch: any }) | null> {
-    return prisma.qrCode.findUnique({
-      where: { code: qrCodeValue },
+    return prisma.qrCode.findFirst({
+      where: {
+        OR: [
+          { code: qrCodeValue },
+          { code: { endsWith: `/${qrCodeValue}` } },
+        ],
+      },
       include: {
         batch: {
           include: {
