@@ -35,7 +35,7 @@ export class CheckvnQrService {
 
     // Kiểm tra quyền sở hữu hợp tác xã (HTX_MANAGER/FARMER phải thuộc cùng cooperative)
     const cooperativeId = season.farm_zone.farmer.cooperative_id;
-    if (user.role !== 'SUPER_ADMIN' && user.cooperative_id !== cooperativeId) {
+    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền tạo lô hàng cho vụ mùa này');
     }
 
@@ -71,7 +71,7 @@ export class CheckvnQrService {
       quantity_qr_requested: data.quantity_qr,
       packaging_unit: data.packaging_unit,
       product_description: data.product_description,
-      created_by: user.farmer_id || user.id, // HTX Manager or Farmer (associated fields)
+      created_by: user.farmerId || user.userId,
     });
   }
 
@@ -88,7 +88,7 @@ export class CheckvnQrService {
     const cooperativeId = farmer.cooperative_id;
 
     if (user.role !== 'SUPER_ADMIN') {
-      if (user.role !== 'HTX_MANAGER' || user.cooperative_id !== cooperativeId) {
+      if (user.role !== 'HTX_MANAGER' || user.cooperativeId !== cooperativeId) {
         throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền thực hiện yêu cầu cấp QR cho lô hàng này');
       }
     }
@@ -153,7 +153,7 @@ export class CheckvnQrService {
     const farmZone = batch.season.farm_zone;
     const cooperativeId = farmZone.farmer.cooperative_id;
 
-    if (user.role !== 'SUPER_ADMIN' && user.cooperative_id !== cooperativeId) {
+    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập thông tin lô hàng này');
     }
 
@@ -166,7 +166,7 @@ export class CheckvnQrService {
     }
 
     return checkvnQrRepository.findAllBatches({
-      cooperativeId: user.cooperative_id,
+      cooperativeId: user.cooperativeId,
     });
   }
 
@@ -180,7 +180,7 @@ export class CheckvnQrService {
     const farmZone = batch.season.farm_zone;
     const cooperativeId = farmZone.farmer.cooperative_id;
 
-    if (user.role !== 'SUPER_ADMIN' && user.cooperative_id !== cooperativeId) {
+    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập danh sách QR của lô hàng này');
     }
 
@@ -201,7 +201,7 @@ export class CheckvnQrService {
     // Kiểm tra quyền
     const cooperativeId = batch.season.farm_zone.farmer.cooperative_id;
     if (user.role !== 'SUPER_ADMIN') {
-      if (user.role !== 'HTX_MANAGER' || user.cooperative_id !== cooperativeId) {
+      if (user.role !== 'HTX_MANAGER' || user.cooperativeId !== cooperativeId) {
         throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền kích hoạt lô hàng này');
       }
     }
@@ -227,7 +227,7 @@ export class CheckvnQrService {
     // Kiểm tra quyền (HTX_MANAGER hoặc SUPER_ADMIN)
     const cooperativeId = batch.season.farm_zone.farmer.cooperative_id;
     if (user.role !== 'SUPER_ADMIN') {
-      if (user.role !== 'HTX_MANAGER' || user.cooperative_id !== cooperativeId) {
+      if (user.role !== 'HTX_MANAGER' || user.cooperativeId !== cooperativeId) {
         throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền thu hồi lô hàng này');
       }
     }
