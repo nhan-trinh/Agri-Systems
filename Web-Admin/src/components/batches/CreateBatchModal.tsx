@@ -107,8 +107,9 @@ export function CreateBatchModal({ isOpen, onClose, onSubmit, seasons, submittin
         packaging_unit: formData.packaging_unit.trim(),
         product_description: formData.product_description.trim() || undefined,
       });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo lô hàng');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'Có lỗi xảy ra khi tạo lô hàng');
     }
   };
 

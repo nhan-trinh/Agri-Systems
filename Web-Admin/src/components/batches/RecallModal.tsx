@@ -41,8 +41,9 @@ export function RecallModal({ isOpen, onClose, onSubmit, batch, submitting }: Re
     try {
       await onSubmit(batch.id, reason.trim());
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi thu hồi lô hàng');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'Có lỗi xảy ra khi thu hồi lô hàng');
     }
   };
 

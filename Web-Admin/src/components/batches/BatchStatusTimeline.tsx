@@ -1,5 +1,5 @@
 import { Batch } from '@/lib/types';
-import { Calendar, User, Package, Check, HelpCircle } from 'lucide-react';
+import { User, Package, Check, HelpCircle } from 'lucide-react';
 
 interface BatchStatusTimelineProps {
   selectedBatch: Batch | null;

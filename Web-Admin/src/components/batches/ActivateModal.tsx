@@ -35,8 +35,9 @@ export function ActivateModal({ isOpen, onClose, onSubmit, batch, submitting }: 
     try {
       await onSubmit(batch.id, note.trim());
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi kích hoạt lô hàng');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'Có lỗi xảy ra khi kích hoạt lô hàng');
     }
   };
 

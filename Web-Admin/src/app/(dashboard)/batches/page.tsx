@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api/axios';
-import { Batch, QrCode } from '@/lib/types';
+import { Batch, QrCode, Season } from '@/lib/types';
 import { BatchTable } from '@/components/batches/BatchTable';
 import { QrCodeTable } from '@/components/batches/QrCodeTable';
 import { BatchStatusTimeline } from '@/components/batches/BatchStatusTimeline';
@@ -15,7 +15,7 @@ import { Plus, Package, Clock, ShieldCheck, AlertTriangle } from 'lucide-react';
 export default function BatchesPage() {
   const { user } = useAuthStore();
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [seasons, setSeasons] = useState<any[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
   const [qrCodes, setQrCodes] = useState<QrCode[]>([]);
   
   const [loading, setLoading] = useState(true);
@@ -119,7 +119,14 @@ export default function BatchesPage() {
     fetchQrs();
   }, [selectedBatchIdForQr]);
 
-  const handleCreateBatch = async (data: any) => {
+  const handleCreateBatch = async (data: {
+    season_id: string;
+    batch_name: string;
+    total_weight_kg: number;
+    quantity_qr: number;
+    packaging_unit: string;
+    product_description?: string;
+  }) => {
     try {
       setSubmitting(true);
       const res = await apiClient.post('/qr/batches', data);
@@ -128,7 +135,7 @@ export default function BatchesPage() {
         setIsCreateOpen(false);
         fetchData();
       }
-    } catch (err: any) {
+    } catch (err) {
       throw err;
     } finally {
       setSubmitting(false);
@@ -143,8 +150,9 @@ export default function BatchesPage() {
         showToast('Yêu cầu cấp QR đã gửi lên CheckVN thành công!', 'success');
         fetchData();
       }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || 'Không thể yêu cầu cấp QR', 'error');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      showToast(axiosError.response?.data?.message || 'Không thể yêu cầu cấp QR', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -159,8 +167,9 @@ export default function BatchesPage() {
         setIsActivateOpen(false);
         fetchData();
       }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || 'Kích hoạt thất bại', 'error');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      showToast(axiosError.response?.data?.message || 'Kích hoạt thất bại', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -175,8 +184,9 @@ export default function BatchesPage() {
         setIsRecallOpen(false);
         fetchData();
       }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || 'Thu hồi thất bại', 'error');
+    } catch (err) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      showToast(axiosError.response?.data?.message || 'Thu hồi thất bại', 'error');
     } finally {
       setSubmitting(false);
     }

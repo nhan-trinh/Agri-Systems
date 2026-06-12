@@ -11,6 +11,7 @@ import { TraceRecalledWarning } from '@/components/trace/TraceRecalledWarning';
 import { TraceFarmingTimeline } from '@/components/trace/TraceFarmingTimeline';
 import { Loader2, AlertTriangle, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { TracingData } from '@/lib/types';
 
 const TraceFarmMap = dynamic(() => import('@/components/trace/TraceFarmMap'), {
   ssr: false,
@@ -26,7 +27,7 @@ export default function PublicTracePage() {
   const params = useParams();
   const qrCodeValue = decodeURIComponent(params.qrCode as string);
   
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<TracingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ code?: string; message: string } | null>(null);
 
@@ -39,10 +40,11 @@ export default function PublicTracePage() {
         if (res.data?.success) {
           setData(res.data.data);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error('Lỗi tra cứu:', err);
-        const errMsg = err.response?.data?.message || 'Không thể tra cứu thông tin sản phẩm';
-        const errCode = err.response?.data?.code || 'ERROR';
+        const axiosError = err as { response?: { data?: { message?: string; code?: string } } };
+        const errMsg = axiosError.response?.data?.message || 'Không thể tra cứu thông tin sản phẩm';
+        const errCode = axiosError.response?.data?.code || 'ERROR';
         setError({ code: errCode, message: errMsg });
       } finally {
         setLoading(false);

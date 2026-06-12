@@ -1,8 +1,14 @@
 import { Users, MapPin } from 'lucide-react';
 
 interface TraceFarmerCardProps {
-  farmer: any;
-  cooperative: any;
+  farmer: {
+    full_name: string;
+    address: string;
+  };
+  cooperative: {
+    name: string;
+    phone?: string;
+  };
 }
 
 export function TraceFarmerCard({ farmer, cooperative }: TraceFarmerCardProps) {

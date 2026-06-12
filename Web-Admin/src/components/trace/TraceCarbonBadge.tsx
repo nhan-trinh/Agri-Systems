@@ -1,5 +1,10 @@
 interface TraceCarbonBadgeProps {
-  carbonRecord: any;
+  carbonRecord: {
+    status: string;
+    net_carbon_tCO2e: number;
+    certificate_no: string;
+    credit_amount_tCO2e: number;
+  };
 }
 
 export function TraceCarbonBadge({ carbonRecord }: TraceCarbonBadgeProps) {

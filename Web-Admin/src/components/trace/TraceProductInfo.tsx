@@ -1,7 +1,8 @@
-import { Calendar, Tag, ShieldCheck } from 'lucide-react';
+import { Tag, ShieldCheck } from 'lucide-react';
+import { Batch } from '@/lib/types';
 
 interface TraceProductInfoProps {
-  batch: any;
+  batch: Batch;
 }
 
 export function TraceProductInfo({ batch }: TraceProductInfoProps) {
