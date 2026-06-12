@@ -71,7 +71,7 @@ export class CheckvnQrService {
       quantity_qr_requested: data.quantity_qr,
       packaging_unit: data.packaging_unit,
       product_description: data.product_description,
-      created_by: user.farmer_id || user.id, // HTX Manager or Farmer (associated fields)
+      created_by: user.farmerId || user.userId,
     });
   }
 

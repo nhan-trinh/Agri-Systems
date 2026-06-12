@@ -40,9 +40,10 @@ const mockAxios = axios as jest.Mocked<typeof axios>;
 
 describe('CheckvnQr Service Tests', () => {
   const mockUser = {
-    id: 'user-manager-001',
+    userId: 'user-manager-001',
     role: 'HTX_MANAGER',
     cooperativeId: 'coop-001',
+    farmerId: null,
   };
 
   const mockSeason = {
