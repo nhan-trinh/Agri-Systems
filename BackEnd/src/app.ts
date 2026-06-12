@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
 import config from './config/app.config';
 import responseHelper from './shared/utils/response.helper';
 
@@ -33,6 +34,9 @@ if (config.env !== 'test') {
   app.use(morgan('dev'));
 }
 
+// Serve static uploads
+app.use('/uploads', express.static(path.resolve(process.cwd(), config.storage?.localPath || './public/uploads')));
+
 // Health Check
 app.get('/health', (req: Request, res: Response) => {
   responseHelper.success(res, { status: 'OK', env: config.env, version: config.apiVersion });
@@ -51,7 +55,14 @@ import notificationRouter from './modules/notification/notification.router';
 import ocrRouter from './modules/ocr/ocr.router';
 import cooperativeRouter from './modules/cooperative/cooperative.router';
 import seasonRouter from './modules/season/season.router';
+import dashboardRouter from './modules/dashboard/dashboard.router';
 import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
+
+// Start BullMQ background workers (except in test mode)
+if (config.env !== 'test') {
+  require('./workers/carbon-calculation.worker');
+  require('./workers/carbon-certificate.worker');
+}
 
 // Global API Router Placeholder
 const apiRouter = express.Router();
@@ -69,6 +80,7 @@ apiRouter.use('/notifications', notificationRouter);
 apiRouter.use('/ocr', ocrRouter);
 apiRouter.use('/cooperatives', cooperativeRouter);
 apiRouter.use('/seasons', seasonRouter);
+apiRouter.use('/dashboard', dashboardRouter);
 
 app.use(`/api/${config.apiVersion}`, apiRouter);
 

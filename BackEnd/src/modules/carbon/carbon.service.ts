@@ -4,11 +4,11 @@ import { EmissionFactor } from '@prisma/client';
 
 export class CarbonService {
   async getAllEmissionFactors(): Promise<EmissionFactor[]> {
-    return carbonRepository.findAll();
+    return carbonRepository.findAllEmissionFactors();
   }
 
   async getEmissionFactorById(id: string): Promise<EmissionFactor> {
-    const factor = await carbonRepository.findById(id);
+    const factor = await carbonRepository.findEmissionFactorById(id);
     if (!factor) {
       throw new AppError('EMISSION_FACTOR_NOT_FOUND', 404, 'Không tìm thấy hệ số phát thải');
     }
@@ -16,17 +16,17 @@ export class CarbonService {
   }
 
   async createEmissionFactor(data: any): Promise<EmissionFactor> {
-    return carbonRepository.create(data);
+    return carbonRepository.createEmissionFactor(data);
   }
 
   async updateEmissionFactor(id: string, data: any): Promise<EmissionFactor> {
     await this.getEmissionFactorById(id); // Check existence
-    return carbonRepository.update(id, data);
+    return carbonRepository.updateEmissionFactor(id, data);
   }
 
   async deleteEmissionFactor(id: string): Promise<EmissionFactor> {
     await this.getEmissionFactorById(id); // Check existence
-    return carbonRepository.delete(id);
+    return carbonRepository.deleteEmissionFactor(id);
   }
 }
 

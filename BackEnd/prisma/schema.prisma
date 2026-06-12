@@ -225,34 +225,51 @@ enum QrStatus {
 
 // ==================== CARBON ====================
 
+enum EmissionMaterialType {
+  FERTILIZER
+  PESTICIDE
+  HARVEST
+}
+
 model EmissionFactor {
-  id             String   @id @default(cuid())
-  material_type  String
+  id             String               @id @default(cuid())
+  material_type  EmissionMaterialType
+  material_name  String
+  crop_type      CropType?
   factor_value   Float
   unit           String
   description    String
   source         String
-  effective_from DateTime
-  is_active      Boolean  @default(true)
-  created_at     DateTime @default(now())
+  effective_from DateTime             @default(now())
+  is_active      Boolean              @default(true)
+  updated_by     String?
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @updatedAt
+
+  @@unique([material_type, material_name, crop_type])
+  @@index([material_type, is_active])
 }
 
 model CarbonRecord {
-  id                   String       @id @default(cuid())
-  season_id            String       @unique
-  season               Season       @relation(fields: [season_id], references: [id])
-  total_emitted_kg     Float
-  total_sequestered_kg Float
-  net_carbon_tCO2e     Float
-  status               CarbonStatus @default(DRAFT)
-  calculation_details  Json
-  verified_by          String?
-  verified_at          DateTime?
-  issued_at            DateTime?
-  certificate_no       String?      @unique
-  credit_amount_tCO2e  Float?
-  created_at           DateTime     @default(now())
-  updated_at           DateTime     @updatedAt
+  id                     String       @id @default(cuid())
+  season_id              String       @unique
+  season                 Season       @relation(fields: [season_id], references: [id])
+  total_emitted_kg       Float
+  total_sequestered_kg   Float
+  net_carbon_tCO2e       Float
+  status                 CarbonStatus @default(DRAFT)
+  calculation_details    Json
+  verified_by            String?
+  verified_at            DateTime?
+  issued_at              DateTime?
+  certificate_no         String?      @unique
+  certificate_url        String?
+  certificate_expires_at DateTime?
+  credit_amount_tCO2e    Float?
+  created_at             DateTime     @default(now())
+
+  @@index([status])
+  @@index([season_id])
 }
 
 enum CarbonStatus {
