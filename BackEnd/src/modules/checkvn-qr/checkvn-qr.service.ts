@@ -328,6 +328,12 @@ export class CheckvnQrService {
         yield_kg: log.yield_kg,
         harvest_method: log.harvest_method,
       })),
+      carbon_record: qrCode.batch.season.carbon_record ? {
+        net_carbon_tCO2e: qrCode.batch.season.carbon_record.net_carbon_tCO2e,
+        status: qrCode.batch.season.carbon_record.status,
+        certificate_no: qrCode.batch.season.carbon_record.certificate_no,
+        credit_amount_tCO2e: qrCode.batch.season.carbon_record.credit_amount_tCO2e,
+      } : null,
     };
 
     const cacheValue = {

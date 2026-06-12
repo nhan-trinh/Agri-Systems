@@ -240,6 +240,7 @@ export class CheckvnQrRepository {
                     activity_date: 'asc',
                   },
                 },
+                carbon_record: true,
               },
             },
           },
