@@ -5,7 +5,7 @@ interface TraceFarmerCardProps {
     full_name: string;
     address: string;
   };
-  cooperative: {
+  cooperative?: {
     name: string;
     phone?: string;
   };
@@ -24,11 +24,15 @@ export function TraceFarmerCard({ farmer, cooperative }: TraceFarmerCardProps) {
           <MapPin className="h-3.5 w-3.5 text-stone-400" />
           {farmer.address}
         </p>
-        <p className="pt-2 border-t border-stone-100 text-[10px] font-bold text-emerald-800 block uppercase mt-2">
-          Hợp tác xã liên kết
-        </p>
-        <p className="font-bold text-stone-800 text-xs mt-1">{cooperative.name}</p>
-        <p className="text-[11px] text-stone-400">SĐT: {cooperative.phone}</p>
+        {cooperative && (
+          <>
+            <p className="pt-2 border-t border-stone-100 text-[10px] font-bold text-emerald-800 block uppercase mt-2">
+              Hợp tác xã liên kết
+            </p>
+            <p className="font-bold text-stone-800 text-xs mt-1">{cooperative.name}</p>
+            {cooperative.phone && <p className="text-[11px] text-stone-400">SĐT: {cooperative.phone}</p>}
+          </>
+        )}
       </div>
     </div>
   );
