@@ -241,7 +241,7 @@ export class CheckvnQrService {
 
   public async publicTrace(qrCodeValue: string): Promise<any> {
     const cacheKey = `qr:trace:${qrCodeValue}`;
-    
+
     // 1. Thử lấy từ cache Redis
     try {
       const redis = await getRedisClient();
@@ -373,7 +373,7 @@ export class CheckvnQrService {
       try {
         const qrCodes = Array.from({ length: quantity }, (_, i) => {
           const suffix = String(i + 1).padStart(4, '0');
-          return `https://check.gov.vn/qr/v2/${batchCode}-${suffix}`;
+          return `${config.appUrl}/public/trace/${batchCode}-${suffix}`;
         });
 
         const webhookPayload = {

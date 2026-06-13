@@ -46,7 +46,7 @@ function MapEvents({ onMapClick }: MapEventsProps) {
   return null;
 }
 
-interface ZoneData {
+export interface ZoneData {
   id: string;
   farm_zone_code: string;
   zone_name: string;
@@ -186,19 +186,19 @@ export function FarmZoneMap({
       <MapContainer
         center={mapCenter}
         zoom={zoom}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', minHeight: '400px' }}
         scrollWheelZoom={true}
         className="z-10"
       >
         <RecenterMap center={mapCenter} zoom={mapZoom} />
         <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="Bản đồ đường đi">
+          <LayersControl.BaseLayer name="Bản đồ đường đi">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Ảnh vệ tinh (ESRI)">
+          <LayersControl.BaseLayer checked name="Ảnh vệ tinh (ESRI)">
             <TileLayer
               attribution='&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"

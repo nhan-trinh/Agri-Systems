@@ -1,68 +1,63 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { apiClient } from '@/lib/api/axios';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
-interface CarbonChartData {
+interface YieldChartData {
   month: number;
-  emitted_kg: number;
-  sequestered_kg: number;
-  net_tCO2e: number;
+  yield_kg: number;
 }
 
 interface ChartDataPoint {
   name: string;
-  emitted: number;
-  sequestered: number;
-  net: number;
+  yield: number;
 }
 
 const MONTH_NAMES = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
 
-interface CarbonTrendChartProps {
+interface YieldChartProps {
   year?: number;
   cooperativeId?: string;
 }
 
-export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps) {
+export function YieldChart({ year, cooperativeId }: YieldChartProps) {
   const [data, setData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState(year || new Date().getFullYear());
 
   useEffect(() => {
-    fetchCarbonChart();
+    fetchYieldChart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, cooperativeId]);
 
-  const fetchCarbonChart = async () => {
+  const fetchYieldChart = async () => {
     try {
       setLoading(true);
       setError(null);
       const params: { year: number; cooperativeId?: string } = { year: selectedYear };
       if (cooperativeId) params.cooperativeId = cooperativeId;
 
-      const res = await apiClient.get('/dashboard/carbon-chart', { params });
+      const res = await apiClient.get('/dashboard/yield-chart', { params });
       if (res.data?.success) {
-        const rawData: CarbonChartData[] = res.data.data;
+        const rawData: YieldChartData[] = res.data.data;
         const chartData: ChartDataPoint[] = rawData.map((item) => ({
           name: MONTH_NAMES[item.month - 1],
-          emitted: Number((item.emitted_kg / 1000).toFixed(2)),
-          sequestered: Number((item.sequestered_kg / 1000).toFixed(2)),
-          net: Number(item.net_tCO2e.toFixed(2)),
+          yield: Number((item.yield_kg / 1000).toFixed(2)), // Convert to tonnes
         }));
         setData(chartData);
       }
     } catch {
-      setError('Không thể tải dữ liệu biểu đồ carbon');
+      setError('Không thể tải dữ liệu sản lượng');
     } finally {
       setLoading(false);
     }
   };
 
-  const hasData = data.some(d => d.emitted > 0 || d.sequestered > 0);
+  const hasData = data.some(d => d.yield > 0);
+  const totalYield = data.reduce((sum, d) => sum + d.yield, 0);
 
   if (loading) {
     return (
@@ -79,7 +74,7 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
         <AlertTriangle className="h-6 w-6 text-amber-500" />
         <p className="text-xs text-stone-500 font-medium">{error}</p>
         <button
-          onClick={fetchCarbonChart}
+          onClick={fetchYieldChart}
           className="text-xs text-[#1b4332] font-bold hover:underline"
         >
           Thử lại
@@ -91,17 +86,20 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
   if (!hasData) {
     return (
       <div className="h-72 w-full flex flex-col items-center justify-center gap-2">
-        <div className="text-4xl">🌱</div>
-        <p className="text-sm text-stone-500 font-medium">Chưa có dữ liệu carbon cho năm {selectedYear}</p>
-        <p className="text-xs text-stone-400">Dữ liệu sẽ hiển thị khi có bản ghi carbon được tạo</p>
+        <div className="text-4xl">🌾</div>
+        <p className="text-sm text-stone-500 font-medium">Chưa có dữ liệu sản lượng cho năm {selectedYear}</p>
+        <p className="text-xs text-stone-400">Dữ liệu sẽ hiển thị khi các vụ mùa hoàn thành</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {/* Year Selector */}
-      <div className="flex justify-end">
+      {/* Year Selector + Total */}
+      <div className="flex justify-between items-center">
+        <p className="text-xs font-bold text-stone-500">
+          Tổng: <span className="text-[#1b4332] text-sm">{totalYield.toFixed(1)}</span> tấn
+        </p>
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -115,19 +113,25 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
 
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+          <AreaChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+            <defs>
+              <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2d6a4f" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#2d6a4f" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e6ebe3" vertical={false} />
-            <XAxis 
-              dataKey="name" 
-              tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }} 
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }}
               axisLine={{ stroke: '#e6ebe3' }}
               tickLine={false}
             />
-            <YAxis 
-              tick={{ fontSize: 10, fill: '#78716c' }} 
+            <YAxis
+              tick={{ fontSize: 10, fill: '#78716c' }}
               axisLine={false}
               tickLine={false}
-              label={{ value: 'tCO2e', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#a8a29e', offset: 15 }}
+              label={{ value: 'Tấn', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#a8a29e', offset: 15 }}
             />
             <Tooltip
               contentStyle={{
@@ -139,26 +143,19 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
               }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => {
-                const label = name === 'emitted' ? 'Phát thải' : name === 'sequestered' ? 'Hấp thụ' : 'Carbon ròng';
-                return [`${value} tCO2e`, label];
-              }}
+              formatter={(value: any) => [`${value} tấn`, 'Sản lượng']}
               labelFormatter={(label) => `Tháng ${String(label).replace('T', '')}`}
             />
-            <Legend 
-              formatter={(value: string) => {
-                const labels: Record<string, string> = { emitted: 'Phát thải', sequestered: 'Hấp thụ', net: 'Carbon ròng' };
-                return <span className="text-xs font-bold">{labels[value] || value}</span>;
-              }}
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
+            <Area
+              type="monotone"
+              dataKey="yield"
+              stroke="#2d6a4f"
+              strokeWidth={2.5}
+              fill="url(#yieldGradient)"
+              dot={{ r: 3, fill: '#2d6a4f', strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#1b4332', strokeWidth: 2, stroke: '#fff' }}
             />
-            <ReferenceLine y={0} stroke="#a8a29e" strokeDasharray="3 3" />
-            <Bar dataKey="emitted" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="sequestered" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="net" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={24} />
-          </BarChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>

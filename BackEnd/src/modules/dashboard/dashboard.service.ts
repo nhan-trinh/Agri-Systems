@@ -383,7 +383,7 @@ export class DashboardService {
       actions.push({
         type: 'CARBON_DRAFT',
         message: `${draftCarbonCount} bản ghi Carbon đang ở trạng thái DRAFT chờ duyệt`,
-        action_url: '/carbon/records?status=DRAFT',
+        action_url: '/carbon?status=DRAFT',
       });
     }
 
@@ -396,7 +396,7 @@ export class DashboardService {
       actions.push({
         type: 'LOW_STOCK',
         message: `${lowStockCount} vật tư trong kho sắp hết hàng (dưới mức cảnh báo)`,
-        action_url: '/warehouse/inventory',
+        action_url: '/warehouse',
       });
     }
 
@@ -405,7 +405,7 @@ export class DashboardService {
       actions.push({
         type: 'QR_RECEIVED',
         message: `${qrReceivedCount} lô hàng đã nhận dải mã QR, chờ kích hoạt`,
-        action_url: '/qr/batches?status=QR_RECEIVED',
+        action_url: '/qr?status=QR_RECEIVED',
       });
     }
 
