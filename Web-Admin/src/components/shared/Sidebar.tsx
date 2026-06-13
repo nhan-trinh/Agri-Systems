@@ -45,6 +45,12 @@ export function Sidebar() {
       roles: ['SUPER_ADMIN'],
     },
     {
+      title: 'Báo cáo Carbon',
+      href: '/carbon',
+      icon: Leaf,
+      roles: ['SUPER_ADMIN', 'HTX_MANAGER', 'GOV_VIEWER'],
+    },
+    {
       title: 'Hộ nông dân',
       href: '/farmers',
       icon: Users,

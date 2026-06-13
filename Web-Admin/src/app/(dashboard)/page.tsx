@@ -1,7 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api/axios';
 import { CarbonTrendChart } from '@/components/charts/CarbonTrendChart';
+import { YieldChart } from '@/components/charts/YieldChart';
+import { DashboardStatsCards } from '@/components/dashboard/DashboardStatsCards';
+import { RecentActivitiesPanel } from '@/components/dashboard/RecentActivitiesPanel';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { 
@@ -15,11 +20,30 @@ import {
   BarChart3, 
   TrendingUp
 } from 'lucide-react';
+import { ZoneData } from '@/components/map/FarmZoneMap';
 
 const FarmZoneMap = dynamic(() => import('@/components/map/FarmZoneMap').then(m => m.FarmZoneMap), { ssr: false });
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const [zones, setZones] = useState<ZoneData[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchZones();
+    }
+  }, [user]);
+
+  const fetchZones = async () => {
+    try {
+      const res = await apiClient.get('/farm-zones');
+      if (res.data?.success) {
+        setZones(res.data.data);
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách vùng trồng:', err);
+    }
+  };
 
   if (!user) return null;
 
@@ -59,7 +83,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Role-Based Quick Actions & Stats */}
+      {/* Live Stats Cards */}
+      <DashboardStatsCards cooperativeId={user.cooperativeId || undefined} />
+
+      {/* Role-Based Quick Actions */}
       <div>
         <h2 className="font-serif text-xl font-bold text-stone-800 mb-4">
           Bàn làm việc của bạn
@@ -217,26 +244,44 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Action Items & Recent Activities */}
+      <div className="space-y-4">
+        <h2 className="font-serif text-xl font-bold text-stone-800">
+          Thông báo & Hoạt động
+        </h2>
+        <RecentActivitiesPanel cooperativeId={user.cooperativeId || undefined} />
+      </div>
+
       {/* Visual Data Section */}
       <div className="space-y-4">
         <h2 className="font-serif text-xl font-bold text-stone-800">
-          Giám sát trực quan (Bản thử nghiệm)
+          Giám sát trực quan
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-5 rounded-3xl border border-[#e6ebe3] shadow-sm">
             <h3 className="font-serif text-sm font-bold text-stone-700 mb-4 flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-[#1b4332]" />
-              Xu hướng giảm phát thải Carbon (tCO2e)
+              Xu hướng phát thải & hấp thụ Carbon
             </h3>
-            <CarbonTrendChart />
+            <CarbonTrendChart cooperativeId={user.cooperativeId || undefined} />
           </div>
 
           <div className="bg-white p-5 rounded-3xl border border-[#e6ebe3] shadow-sm">
             <h3 className="font-serif text-sm font-bold text-stone-700 mb-4 flex items-center gap-1.5">
-              <Map className="h-4 w-4 text-[#1b4332]" />
-              Bản đồ vùng trồng liên kết vệ tinh
+              <Sprout className="h-4 w-4 text-[#1b4332]" />
+              Sản lượng thu hoạch theo tháng
             </h3>
-            <FarmZoneMap />
+            <YieldChart cooperativeId={user.cooperativeId || undefined} />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-3xl border border-[#e6ebe3] shadow-sm">
+          <h3 className="font-serif text-sm font-bold text-stone-700 mb-4 flex items-center gap-1.5">
+            <Map className="h-4 w-4 text-[#1b4332]" />
+            Bản đồ vùng trồng liên kết vệ tinh
+          </h3>
+          <div className="h-[450px] w-full rounded-2xl overflow-hidden relative">
+            <FarmZoneMap zones={zones} />
           </div>
         </div>
       </div>

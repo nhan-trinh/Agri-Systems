@@ -87,3 +87,9 @@
 | task-50 | Implement Phase 4 CheckVN & QR backend APIs | todo | |
 | task-51 | Add unit/integration tests for Phase 4 | todo | |
 | task-52 | Verify implementation & build | todo | |
+| task-53 | Connect Dashboard: CarbonTrendChart to real API | completed | /dashboard/carbon-chart, added YieldChart |
+| task-54 | Connect Dashboard: Stats cards to real API | completed | /dashboard/stats, 8 live metric cards |
+| task-55 | Connect Dashboard: Recent Activities & Action Items | completed | RecentActivitiesPanel component |
+| task-56 | Verify Dashboard frontend build | completed | ✅ 19/19 pages, 0 errors |
+| task-57 | Fix action items 404 links (API action_url correction) | completed | Updated DRAFT carbon, warehouse inventory, and QR batch URLs |
+| task-58 | Fix dashboard satellite map display/rendering error | completed | Wrapped in height-restricted div, fetched zones, set ESRI checked |
