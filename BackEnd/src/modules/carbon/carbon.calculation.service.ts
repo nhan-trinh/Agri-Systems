@@ -103,6 +103,34 @@ export class CarbonCalculationService {
       }
     }
 
+    // Fall back to season-level actual_yield_kg if no explicit HARVESTING logs are recorded
+    const hasHarvestLog = harvest.length > 0;
+    if (!hasHarvestLog && season.actual_yield_kg && season.actual_yield_kg > 0) {
+      const cropType = (season.farm_zone?.crop_type || CropType.RICE) as CropType;
+      
+      const factor = factors.find(
+        (f) => f.material_type === 'HARVEST' && f.crop_type === cropType
+      );
+      
+      const factorValue = factor ? factor.factor_value : 0.189;
+      const yieldKg = season.actual_yield_kg;
+      const sequestration = yieldKg * factorValue;
+
+      const activityDate = season.actual_end_date
+        ? season.actual_end_date.toISOString()
+        : (season.updated_at ? season.updated_at.toISOString() : new Date().toISOString());
+
+      harvest.push({
+        log_id: 'season-harvest',
+        activity_date: activityDate,
+        yield_kg: yieldKg,
+        crop_type: cropType,
+        factor_value: factorValue,
+        sequestration_kgCO2: parseFloat(sequestration.toFixed(3)),
+      });
+      totalSequesteredKg += sequestration;
+    }
+
     // Net carbon in tonnes: (emissions - sequestration) / 1000
     // Net < 0 means net sequestration (sequestration exceeds emissions)
     const netCarbonTCO2e = (totalEmittedKg - totalSequesteredKg) / CO2_TO_TON_DIVISOR;
