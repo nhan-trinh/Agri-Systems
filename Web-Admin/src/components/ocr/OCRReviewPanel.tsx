@@ -13,11 +13,34 @@ import {
   Save,
   Check,
   XCircle,
-  FileText,
-  Calendar,
-  Package,
-  User
+  FileText
 } from 'lucide-react';
+
+interface OcrDraftFormData {
+  season_id?: string;
+  activity_date?: string;
+  activity_type?: string;
+  material_id?: string | null;
+  fertilizer_type?: string;
+  quantity_kg?: number;
+  product_name?: string;
+  dosage?: number;
+  unit?: string;
+  water_volume_m3?: number;
+  duration_hours?: number;
+  yield_kg?: number;
+  harvest_method?: string;
+  notes?: string;
+  transaction_type?: string;
+  transaction_date?: string;
+  quantity?: number;
+  supplier?: string;
+  invoice_no?: string;
+  unit_price?: number;
+  expiry_date?: string;
+  recipient_farmer_id?: string;
+  purpose?: string;
+}
 
 interface OCRReviewPanelProps {
   documentId: string;
@@ -33,8 +56,8 @@ interface DraftRecord {
   id: string;
   target_entity: 'FARMING_LOG' | 'WAREHOUSE_TRANSACTION';
   status: string;
-  ai_normalized_data: Record<string, any>;
-  confirmed_data: Record<string, any> | null;
+  ai_normalized_data: Record<string, unknown>;
+  confirmed_data: Record<string, unknown> | null;
   validation_errors: ValidationError[] | null;
   confidence_score: number | null;
   official_record_id: string | null;
@@ -84,7 +107,7 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
   const [farmers, setFarmers] = useState<Farmer[]>([]);
 
   // Current Form State
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<OcrDraftFormData>({});
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Actions states
@@ -151,13 +174,13 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
     // Safely format dates to YYYY-MM-DD for standard html inputs
     const formattedData = { ...data };
     if (formattedData.activity_date) {
-      formattedData.activity_date = new Date(formattedData.activity_date).toISOString().split('T')[0];
+      formattedData.activity_date = new Date(formattedData.activity_date as string).toISOString().split('T')[0];
     }
     if (formattedData.transaction_date) {
-      formattedData.transaction_date = new Date(formattedData.transaction_date).toISOString().split('T')[0];
+      formattedData.transaction_date = new Date(formattedData.transaction_date as string).toISOString().split('T')[0];
     }
     if (formattedData.expiry_date) {
-      formattedData.expiry_date = new Date(formattedData.expiry_date).toISOString().split('T')[0];
+      formattedData.expiry_date = new Date(formattedData.expiry_date as string).toISOString().split('T')[0];
     }
 
     setFormData(formattedData);
@@ -171,7 +194,7 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
     initForm(reviewData.draft_records[index]);
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof OcrDraftFormData>(field: K, value: OcrDraftFormData[K]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -245,9 +268,10 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
           };
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Save failed:', err);
-      const msg = err.response?.data?.message || 'Không thể lưu bản nháp';
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || 'Không thể lưu bản nháp';
       showToast(msg, 'error');
     } finally {
       setSaving(false);
@@ -287,14 +311,15 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
           onClose();
         }, 1000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Confirm failed:', err);
-      const msg = err.response?.data?.message || 'Ghi sổ thất bại. Vui lòng kiểm tra lại thông tin lỗi.';
+      const error = err as { response?: { data?: { message?: string; validation_errors?: ValidationError[] } } };
+      const msg = error.response?.data?.message || 'Ghi sổ thất bại. Vui lòng kiểm tra lại thông tin lỗi.';
       showToast(msg, 'error');
       
       // If validation error returned, refresh the error indicators
-      if (err.response?.data?.validation_errors) {
-        setValidationErrors(err.response.data.validation_errors);
+      if (error.response?.data?.validation_errors) {
+        setValidationErrors(error.response.data.validation_errors);
       }
     } finally {
       setConfirming(false);
@@ -321,9 +346,10 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
           onClose();
         }, 1000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reject failed:', err);
-      const msg = err.response?.data?.message || 'Không thể từ chối tài liệu';
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || 'Không thể từ chối tài liệu';
       showToast(msg, 'error');
     } finally {
       setRejecting(false);

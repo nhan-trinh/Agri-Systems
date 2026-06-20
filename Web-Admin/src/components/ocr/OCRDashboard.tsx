@@ -10,9 +10,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
-  Trash2,
   RefreshCw,
-  Calendar,
   X,
   Clock,
   Eye
@@ -129,6 +127,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
     if (activeTab === 'HISTORY') {
       fetchBatches();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, page, filterStatus]);
 
   // Drag and Drop handlers
@@ -220,9 +219,10 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
         setActiveTab('HISTORY');
         setPage(1);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload failed:', err);
-      const msg = err.response?.data?.message || 'Có lỗi xảy ra khi tải lên tài liệu';
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || 'Có lỗi xảy ra khi tải lên tài liệu';
       showToast(msg, 'error');
     } finally {
       setUploading(false);
@@ -230,7 +230,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
   };
 
   // Retry failed document processing
-  const handleRetryDocument = async (docId: string, batchId: string) => {
+  const handleRetryDocument = async (docId: string) => {
     try {
       setActionLoading(prev => ({ ...prev, [docId]: true }));
       const res = await apiClient.post(`/ocr/documents/${docId}/retry`);
@@ -239,9 +239,10 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
         // Refresh batches to show QUEUED status
         fetchBatches();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Retry failed:', err);
-      const msg = err.response?.data?.message || 'Không thể thử lại xử lý tài liệu';
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || 'Không thể thử lại xử lý tài liệu';
       showToast(msg, 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [docId]: false }));
@@ -413,7 +414,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
                     id="hint-select"
                     value={documentHint}
                     onChange={(e) => {
-                      setDocumentHint(e.target.value as any);
+                      setDocumentHint(e.target.value as 'AUTO' | 'FARMING_LOGBOOK' | 'MATERIAL_INVOICE');
                       setSelectedSeasonId('');
                     }}
                     className="border border-stone-200 rounded-xl px-4 py-2.5 bg-white text-stone-700 text-sm font-medium focus:ring-1 focus:ring-[#1b4332] focus:border-[#1b4332] outline-none"
@@ -485,7 +486,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
               <li>Chọn loại tài liệu gợi ý (Hint) giúp AI xử lý chính xác hơn (đặc biệt khi số hóa nhật ký canh tác của vụ mùa).</li>
               <li>Chụp tài liệu rõ nét, căn góc thẳng và đảm bảo đủ ánh sáng để hạn chế lỗi nhận diện chữ viết tay.</li>
               <li>Các tệp PDF hoặc ảnh sẽ được đưa vào hàng đợi xử lý ngầm và số hóa thành bản ghi nháp.</li>
-              <li>Sau khi phân tích xong, bạn có thể kiểm tra danh sách bên Tab **"Lịch sử lô quét"** và chọn **"Duyệt hồ sơ"** để hoàn tất ghi sổ.</li>
+              <li>Sau khi phân tích xong, bạn có thể kiểm tra danh sách bên Tab **Lịch sử lô quét** và chọn **Duyệt hồ sơ** để hoàn tất ghi sổ.</li>
             </ul>
           </div>
         </div>
@@ -643,7 +644,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleRetryDocument(doc.document_id, batch.batch_id);
+                                              handleRetryDocument(doc.document_id);
                                             }}
                                             disabled={actionLoading[doc.document_id]}
                                             className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-100 px-3 py-1 rounded-lg text-xs font-semibold transition-colors disabled:bg-stone-100 disabled:text-stone-400"
