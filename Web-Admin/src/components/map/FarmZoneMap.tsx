@@ -147,6 +147,13 @@ export function FarmZoneMap({
     onDrawingPointsChange(drawingPoints.slice(0, -1));
   };
 
+  const updateDrawingPoint = (index: number, newPoint: [number, number]) => {
+    if (!onDrawingPointsChange) return;
+    const updated = [...drawingPoints];
+    updated[index] = newPoint;
+    onDrawingPointsChange(updated);
+  };
+
   const getCropColor = (cropType: string) => {
     switch (cropType) {
       case 'RICE':
@@ -268,6 +275,14 @@ export function FarmZoneMap({
                 key={index}
                 position={point}
                 icon={createVertexIcon(index, index === 0)}
+                draggable={isDrawing}
+                eventHandlers={{
+                  dragend: (event) => {
+                    const marker = event.target as L.Marker;
+                    const latLng = marker.getLatLng();
+                    updateDrawingPoint(index, [latLng.lat, latLng.lng]);
+                  },
+                }}
               />
             ))}
 
@@ -307,7 +322,7 @@ export function FarmZoneMap({
             <div>
               <h4 className="text-xs font-bold text-[#1b4332] uppercase tracking-wider">Cách vẽ ranh giới</h4>
               <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
-                Click chuột lên các điểm trên bản đồ để xác định góc vùng trồng. Vẽ tối thiểu 3 điểm.
+                Click chuột lên bản đồ để thêm góc vùng trồng. Kéo thả các điểm đã tạo để tinh chỉnh ranh giới. Vẽ tối thiểu 3 điểm.
               </p>
             </div>
           </div>

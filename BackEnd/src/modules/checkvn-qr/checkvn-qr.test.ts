@@ -63,7 +63,7 @@ describe('CheckvnQr Service Tests', () => {
         },
       },
     },
-  };
+  } as any;
 
   const mockBatch = {
     id: 'batch-001',

@@ -6,7 +6,7 @@ export class FarmZoneController {
   public getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const farmerId = req.query.farmerId as string | undefined;
-      const zones = await farmZoneService.getZones(req.user, farmerId);
+      const zones = await farmZoneService.getZones(req.user!, farmerId);
       responseHelper.success(res, zones);
     } catch (error) {
       next(error);
@@ -15,7 +15,7 @@ export class FarmZoneController {
 
   public getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const zone = await farmZoneService.getZoneById(req.params.id, req.user);
+      const zone = await farmZoneService.getZoneById(req.params.id, req.user!);
       responseHelper.success(res, zone);
     } catch (error) {
       next(error);
@@ -24,7 +24,7 @@ export class FarmZoneController {
 
   public create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const zone = await farmZoneService.createZone(req.body, req.user);
+      const zone = await farmZoneService.createZone(req.body, req.user!);
       responseHelper.success(res, zone, 201);
     } catch (error) {
       next(error);
@@ -33,7 +33,7 @@ export class FarmZoneController {
 
   public update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const zone = await farmZoneService.updateZone(req.params.id, req.body, req.user);
+      const zone = await farmZoneService.updateZone(req.params.id, req.body, req.user!);
       responseHelper.success(res, zone);
     } catch (error) {
       next(error);
@@ -42,7 +42,7 @@ export class FarmZoneController {
 
   public toggleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const zone = await farmZoneService.toggleZoneStatus(req.params.id, req.user);
+      const zone = await farmZoneService.toggleZoneStatus(req.params.id, req.user!);
       responseHelper.success(res, zone);
     } catch (error) {
       next(error);
@@ -51,7 +51,7 @@ export class FarmZoneController {
 
   public delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await farmZoneService.deleteZone(req.params.id, req.user);
+      const result = await farmZoneService.deleteZone(req.params.id, req.user!);
       responseHelper.success(res, result);
     } catch (error) {
       next(error);

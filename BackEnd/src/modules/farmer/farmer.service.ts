@@ -1,14 +1,26 @@
-import { farmerRepository } from './farmer.repository';
+import { farmerRepository, FarmerListOptions } from './farmer.repository';
 import { cooperativeRepository } from '../cooperative/cooperative.repository';
 import { AppError } from '../../shared/utils/app-error';
 import { Farmer } from '@prisma/client';
 import { getRedisClient } from '../../shared/utils/redis.client';
+import { PaginationMeta } from '../../shared/utils/response.helper';
+import { CreateFarmerInput, FarmerQueryInput, UpdateFarmerInput } from './farmer.dto';
+import { JwtPayload } from '../auth/auth.types';
+
+type FarmerListResult = {
+  data: Farmer[];
+  meta?: PaginationMeta;
+};
+
+const FARMER_CODE_RETRY_LIMIT = 5;
+const FARMER_LIST_TTL_SECONDS = 300;
 
 export class FarmerService {
   private async invalidateCache(farmerId?: string, cooperativeId?: string) {
     try {
       const redis = await getRedisClient();
       await redis.del('farmers:list:all');
+      await redis.del('farmers:list:gov');
       if (cooperativeId) {
         await redis.del(`farmers:list:coop:${cooperativeId}`);
       }
@@ -20,35 +32,129 @@ export class FarmerService {
     }
   }
 
-  async getAllFarmers(user: any): Promise<Farmer[]> {
-    const isSuperAdmin = user.role === 'SUPER_ADMIN';
-    const cacheKey = isSuperAdmin ? 'farmers:list:all' : `farmers:list:coop:${user.cooperativeId}`;
-
-    try {
-      const redis = await getRedisClient();
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch (error) {
-      console.error('[Redis Error] Failed to get farmers list cache:', error);
-    }
-
-    const farmers = isSuperAdmin
-      ? await farmerRepository.findAll()
-      : await farmerRepository.findAll(user.cooperativeId);
-
-    try {
-      const redis = await getRedisClient();
-      await redis.set(cacheKey, JSON.stringify(farmers), { EX: 300 });
-    } catch (error) {
-      console.error('[Redis Error] Failed to set farmers list cache:', error);
-    }
-
-    return farmers;
+  private canUseSimpleListCache(user: JwtPayload, query: Partial<FarmerQueryInput>): boolean {
+    return (
+      !query.cooperative_id &&
+      query.is_active === undefined &&
+      !query.search &&
+      !query.page &&
+      !query.limit &&
+      (!query.sort_by || query.sort_by === 'created_at') &&
+      (!query.sort_order || query.sort_order === 'desc') &&
+      user.role !== 'GOV_VIEWER'
+    );
   }
 
-  async getFarmerById(id: string, user: any): Promise<Farmer> {
+  private getListCacheKey(user: JwtPayload): string {
+    if (user.role === 'SUPER_ADMIN') return 'farmers:list:all';
+    return `farmers:list:coop:${user.cooperativeId}`;
+  }
+
+  private buildListOptions(user: JwtPayload, query: Partial<FarmerQueryInput>): FarmerListOptions {
+    const options: FarmerListOptions = {
+      isActive: query.is_active,
+      search: query.search,
+      sortBy: query.sort_by,
+      sortOrder: query.sort_order,
+    };
+
+    if (user.role === 'HTX_MANAGER') {
+      options.cooperativeId = user.cooperativeId || undefined;
+    } else if (query.cooperative_id) {
+      options.cooperativeId = query.cooperative_id;
+    }
+
+    return options;
+  }
+
+  private redactForGovernment(farmers: Farmer[]): Farmer[] {
+    return farmers.map((farmer) => ({
+      ...farmer,
+      phone: '',
+      national_id: null,
+      address: '',
+    }));
+  }
+
+  private assertCanReadFarmer(farmer: Farmer, user: JwtPayload): void {
+    if (user.role === 'SUPER_ADMIN') return;
+
+    if (user.role === 'FARMER') {
+      if (farmer.id !== user.farmerId) {
+        throw new AppError('FORBIDDEN', 403, 'Ban khong co quyen xem thong tin nong dan nay');
+      }
+      return;
+    }
+
+    if (farmer.cooperative_id !== user.cooperativeId) {
+      throw new AppError('FORBIDDEN', 403, 'Ban khong co quyen xem thong tin nong dan nay');
+    }
+  }
+
+  private isFarmerCodeConflict(error: any): boolean {
+    return error?.code === 'P2002' && String(error?.meta?.target || '').includes('farmer_code');
+  }
+
+  async getAllFarmers(user: JwtPayload, query: Partial<FarmerQueryInput> = {}): Promise<FarmerListResult> {
+    const useCache = this.canUseSimpleListCache(user, query);
+    const cacheKey = this.getListCacheKey(user);
+
+    if (useCache) {
+      try {
+        const redis = await getRedisClient();
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return { data: JSON.parse(cached) };
+        }
+      } catch (error) {
+        console.error('[Redis Error] Failed to get farmers list cache:', error);
+      }
+    }
+
+    const options = this.buildListOptions(user, query);
+    const shouldPaginate = Boolean(query.page || query.limit);
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+
+    if (shouldPaginate) {
+      options.skip = (page - 1) * limit;
+      options.take = limit;
+    }
+
+    const [farmers, total] = shouldPaginate
+      ? await Promise.all([
+          farmerRepository.findAll(options),
+          farmerRepository.count(options),
+        ])
+      : [await farmerRepository.findAll(options), 0];
+
+    const data = user.role === 'GOV_VIEWER' ? this.redactForGovernment(farmers) : farmers;
+
+    if (useCache) {
+      try {
+        const redis = await getRedisClient();
+        await redis.set(cacheKey, JSON.stringify(data), { EX: FARMER_LIST_TTL_SECONDS });
+      } catch (error) {
+        console.error('[Redis Error] Failed to set farmers list cache:', error);
+      }
+    }
+
+    if (!shouldPaginate) {
+      return { data };
+    }
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getFarmerById(id: string, user: JwtPayload): Promise<Farmer> {
     const cacheKey = `farmers:detail:${id}`;
     let farmer: Farmer | null = null;
 
@@ -67,7 +173,7 @@ export class FarmerService {
       if (farmer) {
         try {
           const redis = await getRedisClient();
-          await redis.set(cacheKey, JSON.stringify(farmer), { EX: 300 });
+          await redis.set(cacheKey, JSON.stringify(farmer), { EX: FARMER_LIST_TTL_SECONDS });
         } catch (error) {
           console.error('[Redis Error] Failed to set farmer detail cache:', error);
         }
@@ -75,89 +181,88 @@ export class FarmerService {
     }
 
     if (!farmer) {
-      throw new AppError('FARMER_NOT_FOUND', 404, 'Không tìm thấy nông dân');
+      throw new AppError('FARMER_NOT_FOUND', 404, 'Khong tim thay nong dan');
     }
 
-    // Bảo vệ quyền truy cập theo vai trò
-    if (user.role !== 'SUPER_ADMIN' && farmer.cooperative_id !== user.cooperativeId) {
-      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền xem thông tin nông dân này');
-    }
-
+    this.assertCanReadFarmer(farmer, user);
     return farmer;
   }
 
-  async createFarmer(data: any, user: any): Promise<Farmer> {
-    // Ràng buộc quyền: HTX Manager chỉ được thêm nông dân thuộc HTX của mình
+  async createFarmer(data: CreateFarmerInput, user: JwtPayload): Promise<Farmer> {
     if (user.role !== 'SUPER_ADMIN' && data.cooperative_id !== user.cooperativeId) {
-      throw new AppError('FORBIDDEN', 403, 'Bạn chỉ được phép thêm nông dân vào hợp tác xã của mình');
+      throw new AppError('FORBIDDEN', 403, 'Ban chi duoc phep them nong dan vao HTX cua minh');
     }
 
-    // Kiểm tra HTX tồn tại
     const coop = await cooperativeRepository.findById(data.cooperative_id);
     if (!coop) {
-      throw new AppError('COOPERATIVE_NOT_FOUND', 404, 'Không tìm thấy Hợp tác xã tương ứng');
+      throw new AppError('COOPERATIVE_NOT_FOUND', 404, 'Khong tim thay HTX tuong ung');
+    }
+    if (!coop.is_active) {
+      throw new AppError('COOPERATIVE_INACTIVE', 422, 'HTX dang bi khoa, khong the them nong dan');
     }
 
-    // Kiểm tra trùng số điện thoại nông dân
     const existingPhone = await farmerRepository.findByPhone(data.phone);
     if (existingPhone) {
-      throw new AppError('FARMER_PHONE_DUPLICATE', 409, 'Số điện thoại này đã được sử dụng cho nông dân khác');
+      throw new AppError('FARMER_PHONE_DUPLICATE', 409, 'So dien thoai nay da duoc su dung cho nong dan khac');
     }
 
-    // Tự sinh mã farmer_code: HTX_CODE-YYYY-NNNN
+    const existingUserPhone = await farmerRepository.findUserByPhone(data.phone);
+    if (existingUserPhone) {
+      throw new AppError('USER_PHONE_DUPLICATE', 409, 'So dien thoai nay da duoc su dung cho tai khoan khac');
+    }
+
     const currentYear = new Date().getFullYear();
-    const countThisYear = await farmerRepository.countByCooperativeAndYear(data.cooperative_id, currentYear);
-    const nextSerial = String(countThisYear + 1).padStart(4, '0');
-    const farmerCode = `${coop.htx_code}-${currentYear}-${nextSerial}`;
+    let lastError: unknown;
 
-    const farmer = await farmerRepository.create({
-      ...data,
-      farmer_code: farmerCode,
-    });
+    for (let attempt = 0; attempt < FARMER_CODE_RETRY_LIMIT; attempt += 1) {
+      const countThisYear = await farmerRepository.countByCooperativeAndYear(data.cooperative_id, currentYear);
+      const nextSerial = String(countThisYear + 1 + attempt).padStart(4, '0');
+      const farmerCode = `${coop.htx_code}-${currentYear}-${nextSerial}`;
 
-    // Invalidate cache
-    await this.invalidateCache(undefined, data.cooperative_id);
+      try {
+        const farmer = await farmerRepository.createWithFarmerUser({
+          ...data,
+          date_of_birth: data.date_of_birth || undefined,
+          national_id: data.national_id || undefined,
+          farmer_code: farmerCode,
+          cooperative_id: data.cooperative_id,
+        });
 
-    return farmer;
-  }
-
-  async updateFarmer(id: string, data: any, user: any): Promise<Farmer> {
-    const farmer = await this.getFarmerById(id, user);
-
-    if (data.phone) {
-      const existingPhone = await farmerRepository.findByPhone(data.phone);
-      if (existingPhone && existingPhone.id !== id) {
-        throw new AppError('FARMER_PHONE_DUPLICATE', 409, 'Số điện thoại này đã được sử dụng cho nông dân khác');
+        await this.invalidateCache(undefined, data.cooperative_id);
+        return farmer;
+      } catch (error) {
+        lastError = error;
+        if (!this.isFarmerCodeConflict(error)) {
+          throw error;
+        }
       }
     }
 
-    // Ràng buộc bảo vệ: Không cho phép đổi cooperative_id của nông dân sang HTX khác nếu không phải SUPER_ADMIN
-    if (data.cooperative_id && data.cooperative_id !== farmer.cooperative_id && user.role !== 'SUPER_ADMIN') {
-      throw new AppError('FORBIDDEN', 403, 'Bạn không thể thay đổi Hợp tác xã quản lý của nông dân');
+    throw lastError || new AppError('FARMER_CODE_CONFLICT', 409, 'Khong the sinh ma nong dan duy nhat');
+  }
+
+  async updateFarmer(id: string, data: UpdateFarmerInput & Record<string, unknown>, user: JwtPayload): Promise<Farmer> {
+    if (data.phone || data.cooperative_id) {
+      throw new AppError('IMMUTABLE_FARMER_IDENTITY', 422, 'Khong the thay doi so dien thoai hoac HTX qua API cap nhat ho so');
     }
 
-    const updatedFarmer = await farmerRepository.update(id, data);
+    const farmer = await this.getFarmerById(id, user);
+    const updatedFarmer = await farmerRepository.update(id, {
+      ...data,
+      date_of_birth: data.date_of_birth === null ? null : data.date_of_birth || undefined,
+      national_id: data.national_id === null ? null : data.national_id || undefined,
+    });
 
-    // Invalidate cache
     await this.invalidateCache(id, farmer.cooperative_id);
-    if (data.cooperative_id && data.cooperative_id !== farmer.cooperative_id) {
-      await this.invalidateCache(undefined, data.cooperative_id);
-    }
-
     return updatedFarmer;
   }
 
-  async toggleFarmerStatus(id: string, user: any): Promise<Farmer> {
+  async toggleFarmerStatus(id: string, user: JwtPayload): Promise<Farmer> {
     const farmer = await this.getFarmerById(id, user);
-    
-    // Đảo ngược trạng thái hoạt động thay vì xóa cứng (BR-001-4)
-    const updatedFarmer = await farmerRepository.update(id, {
-      is_active: !farmer.is_active,
-    });
+    const nextStatus = !farmer.is_active;
+    const updatedFarmer = await farmerRepository.updateStatusWithUser(id, nextStatus);
 
-    // Invalidate cache
     await this.invalidateCache(id, farmer.cooperative_id);
-
     return updatedFarmer;
   }
 }

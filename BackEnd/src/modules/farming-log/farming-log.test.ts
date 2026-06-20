@@ -1,4 +1,4 @@
-import { CreateFarmingLogDto } from './farming-log.dto';
+import { CreateFarmingLogDto, UpdateFarmingLogDto } from './farming-log.dto';
 import { ActivityType } from '@prisma/client';
 
 describe('FarmingLog DTO Validation', () => {
@@ -106,5 +106,47 @@ describe('FarmingLog DTO Validation', () => {
       expect(messages).toContain('Sản lượng thu hoạch không được để trống khi gặt hái');
       expect(messages).toContain('Phương pháp thu hoạch (thủ công, máy gặt...) không được để trống khi thu hoạch');
     }
+  });
+});
+
+// R-10: UpdateFarmingLogDto tests
+describe('UpdateFarmingLogDto Validation', () => {
+  it('should not accept activity_type field', () => {
+    const dataWithType = {
+      activity_type: ActivityType.OTHER,
+      notes: 'Updated note',
+    };
+
+    const result = UpdateFarmingLogDto.safeParse(dataWithType);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // activity_type should be stripped since it's not in the schema
+      expect((result.data as Record<string, unknown>).activity_type).toBeUndefined();
+    }
+  });
+
+  it('should not accept season_id field', () => {
+    const dataWithSeasonId = {
+      season_id: 'new-season-id',
+      notes: 'Updated note',
+    };
+
+    const result = UpdateFarmingLogDto.safeParse(dataWithSeasonId);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // season_id should be stripped
+      expect((result.data as Record<string, unknown>).season_id).toBeUndefined();
+    }
+  });
+
+  it('should accept valid update fields', () => {
+    const validUpdate = {
+      notes: 'Updated notes',
+      quantity_kg: 75,
+      fertilizer_type: 'Phân NPK 16-16-8',
+    };
+
+    const result = UpdateFarmingLogDto.safeParse(validUpdate);
+    expect(result.success).toBe(true);
   });
 });

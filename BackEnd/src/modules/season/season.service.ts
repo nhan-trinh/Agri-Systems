@@ -1,4 +1,4 @@
-import { seasonRepository, CreateSeasonInput, UpdateSeasonInput } from './season.repository';
+import { seasonRepository, CreateSeasonInput, UpdateSeasonInput, SeasonWithZoneAndFarmer } from './season.repository';
 import { farmZoneRepository } from '../farm-zone/farm-zone.repository';
 import { AppError } from '../../shared/utils/app-error';
 import { SeasonStatus, UserRole } from '@prisma/client';
@@ -6,7 +6,7 @@ import { JwtPayload } from '../auth/auth.types';
 import { carbonCalculationQueue } from '../../shared/queues/carbon.queue';
 
 export class SeasonService {
-  public async getSeasons(user: JwtPayload, farmZoneId?: string, status?: SeasonStatus): Promise<any[]> {
+  public async getSeasons(user: JwtPayload, farmZoneId?: string, status?: SeasonStatus): Promise<SeasonWithZoneAndFarmer[]> {
     const filters: { cooperativeId?: string; farmZoneId?: string; status?: SeasonStatus } = {
       farmZoneId,
       status,
@@ -19,7 +19,7 @@ export class SeasonService {
     return seasonRepository.findAll(filters);
   }
 
-  public async getSeasonById(id: string, user: JwtPayload): Promise<any> {
+  public async getSeasonById(id: string, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
     const season = await seasonRepository.findById(id);
     if (!season) {
       throw new AppError('SEASON_NOT_FOUND', 404, 'Không tìm thấy vụ mùa');
@@ -33,11 +33,18 @@ export class SeasonService {
     return season;
   }
 
-  public async createSeason(data: any, user: JwtPayload): Promise<any> {
-    const { farm_zone_id, season_name, crop_variety, start_date, expected_end_date, planned_yield_kg } = data;
+  public async createSeason(data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
+    const { farm_zone_id, season_name, crop_variety, start_date, expected_end_date, planned_yield_kg } = data as {
+      farm_zone_id: string;
+      season_name: string;
+      crop_variety: string;
+      start_date: string;
+      expected_end_date: string;
+      planned_yield_kg: number;
+    };
 
     // 1. Verify farm zone exists
-    const zone = await farmZoneRepository.findById(farm_zone_id) as any;
+    const zone = await farmZoneRepository.findById(farm_zone_id);
     if (!zone) {
       throw new AppError('FARM_ZONE_NOT_FOUND', 404, 'Không tìm thấy vùng trồng tương ứng');
     }
@@ -70,35 +77,35 @@ export class SeasonService {
     return seasonRepository.create(input);
   }
 
-  public async updateSeason(id: string, data: any, user: JwtPayload): Promise<any> {
+  public async updateSeason(id: string, data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
     const season = await this.getSeasonById(id, user);
 
     const updatePayload: UpdateSeasonInput = {};
 
     if (data.season_name !== undefined) {
-      updatePayload.season_name = data.season_name;
+      updatePayload.season_name = data.season_name as string;
     }
 
     if (data.crop_variety !== undefined) {
-      updatePayload.crop_variety = data.crop_variety;
+      updatePayload.crop_variety = data.crop_variety as string;
     }
 
     if (data.start_date !== undefined) {
-      updatePayload.start_date = new Date(data.start_date);
+      updatePayload.start_date = new Date(data.start_date as string);
     }
 
     if (data.expected_end_date !== undefined) {
-      updatePayload.expected_end_date = new Date(data.expected_end_date);
+      updatePayload.expected_end_date = new Date(data.expected_end_date as string);
     }
 
     if (data.planned_yield_kg !== undefined) {
-      updatePayload.planned_yield_kg = data.planned_yield_kg;
+      updatePayload.planned_yield_kg = data.planned_yield_kg as number;
     }
 
     return seasonRepository.update(id, updatePayload);
   }
 
-  public async completeSeason(id: string, data: any, user: JwtPayload): Promise<any> {
+  public async completeSeason(id: string, data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
     const season = await this.getSeasonById(id, user);
 
     if (season.status !== SeasonStatus.ACTIVE) {
@@ -107,8 +114,8 @@ export class SeasonService {
 
     const updatePayload: UpdateSeasonInput = {
       status: SeasonStatus.COMPLETED,
-      actual_end_date: new Date(data.actual_end_date),
-      actual_yield_kg: data.actual_yield_kg,
+      actual_end_date: new Date(data.actual_end_date as string),
+      actual_yield_kg: data.actual_yield_kg as number,
     };
 
     const updated = await seasonRepository.update(id, updatePayload);
@@ -119,7 +126,7 @@ export class SeasonService {
     return updated;
   }
 
-  public async cancelSeason(id: string, user: JwtPayload): Promise<any> {
+  public async cancelSeason(id: string, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
     const season = await this.getSeasonById(id, user);
 
     if (season.status !== SeasonStatus.ACTIVE) {

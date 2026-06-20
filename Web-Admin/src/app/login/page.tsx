@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { Phone, Eye, EyeOff, AlertCircle, ArrowRight, Sprout, ShieldCheck, TreePine, Leaf } from 'lucide-react';
@@ -187,9 +188,17 @@ export default function LoginPage() {
 
             {/* Input Password */}
             <div className="space-y-1.5 group relative">
-              <label htmlFor="password" className="text-xs font-bold text-stone-500 tracking-wide uppercase">
-                Mật khẩu
-              </label>
+              <div className="flex items-center justify-between gap-4">
+                <label htmlFor="password" className="text-xs font-bold text-stone-500 tracking-wide uppercase">
+                  Mật khẩu
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-bold text-[#1a402a] hover:text-[#122c1d] transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   id="password"

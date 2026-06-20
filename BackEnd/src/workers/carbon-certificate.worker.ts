@@ -33,7 +33,7 @@ export class CarbonCertificateWorker {
           // 3. Save File using Storage Service
           const storage = StorageFactory.getStorageService();
           const relativePath = `certificates/${record.certificate_no}.pdf`;
-          const downloadUrl = await storage.saveFile(relativePath, pdfBuffer);
+          const { url: downloadUrl } = await storage.saveFile(relativePath, pdfBuffer);
 
           // 4. Update expiry date
           const expiresAt = new Date();

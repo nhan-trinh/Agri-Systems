@@ -3,6 +3,7 @@ import { authRepository } from './auth.repository';
 import { zaloService } from './zalo.service';
 import { AppError } from '../../shared/utils/app-error';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 // ==================== Mocks ====================
 
@@ -92,6 +93,12 @@ const mockInactiveUser = {
   is_active: false,
 };
 
+const hashOtp = (phone: string, otp: string) =>
+  crypto
+    .createHmac('sha256', 'test-secret-key-that-is-long-enough-32-chars')
+    .update(`${phone}:${otp}`)
+    .digest('hex');
+
 // ==================== Tests ====================
 
 describe('AuthService', () => {
@@ -126,6 +133,48 @@ describe('AuthService', () => {
       expect(result.user.id).toBe('user-farmer-001');
       expect(result.user.role).toBe('FARMER');
       expect(mockZalo.exchangeCodeForToken).toHaveBeenCalledWith('valid-auth-code');
+    });
+
+
+    it('links Zalo to a pre-created FARMER user by verified phone', async () => {
+      const preCreatedFarmerUser = {
+        ...mockFarmerUser,
+        zalo_id: null,
+        zalo_name: null,
+        avatar_url: null,
+      };
+      const linkedFarmerUser = {
+        ...preCreatedFarmerUser,
+        zalo_id: 'zalo-new-123',
+        zalo_name: 'Nguyen Van A',
+        avatar_url: 'https://zalo.me/avatar-new.jpg',
+      };
+
+      mockZalo.exchangeCodeForToken.mockResolvedValue('zalo-access-token');
+      mockZalo.getUserProfile.mockResolvedValue({
+        zaloId: 'zalo-new-123',
+        name: 'Nguyen Van A',
+        avatar: 'https://zalo.me/avatar-new.jpg',
+      });
+      mockRepo.findByZaloId.mockResolvedValue(null);
+      mockRepo.findByPhone.mockResolvedValue(preCreatedFarmerUser);
+      mockRepo.linkZaloId.mockResolvedValue(linkedFarmerUser);
+      mockRepo.updateLastLogin.mockResolvedValue();
+
+      const result = await service.zaloLogin({
+        code: 'valid-auth-code',
+        phone: '0901234567',
+      });
+
+      expect(mockRepo.findByPhone).toHaveBeenCalledWith('0901234567');
+      expect(mockRepo.linkZaloId).toHaveBeenCalledWith(
+        preCreatedFarmerUser.id,
+        'zalo-new-123',
+        'Nguyen Van A',
+        'https://zalo.me/avatar-new.jpg'
+      );
+      expect(result.user.zaloId).toBe('zalo-new-123');
+      expect(result.user.role).toBe('FARMER');
     });
 
     it('❌ Case 2: zalo_id chưa có → 404 USER_NOT_FOUND', async () => {
@@ -304,7 +353,17 @@ describe('AuthService', () => {
       );
     });
 
+    it('✅ Tài khoản farmer/Zalo-only không được cấp OTP reset password web', async () => {
+      mockRepo.findByPhone.mockResolvedValue(mockFarmerUser);
+
+      const result = await service.forgotPassword({ phone: '0901234567' });
+
+      expect(result.message).toContain('OTP');
+      expect(mockRedisSet).not.toHaveBeenCalled();
+    });
+
     it('❌ Sai OTP 3 lần → khóa 15 phút, throw OTP_LOCKED', async () => {
+      mockRepo.findByPhone.mockResolvedValue(mockAdminUser);
       mockRedisGet
         .mockResolvedValueOnce('3') // otp_attempt = 3 (đã lock)
         ;
@@ -331,5 +390,21 @@ describe('AuthService', () => {
         expect(e.code).toBe('OTP_EXPIRED');
       }
     });
+
+    it('❌ Farmer/Zalo-only không thể reset password web dù OTP đúng', async () => {
+      mockRedisGet
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(hashOtp('0901234567', '123456'));
+      mockRepo.findByPhone.mockResolvedValue(mockFarmerUser);
+
+      try {
+        await service.resetPassword({ phone: '0901234567', otp: '123456', new_password: 'newpass123' });
+        throw new Error('Expected resetPassword to throw');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(AppError);
+        expect(e.code).toBe('FORBIDDEN');
+      }
+    });
   });
 });
+

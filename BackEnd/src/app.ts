@@ -62,6 +62,7 @@ import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller'
 if (config.env !== 'test') {
   require('./workers/carbon-calculation.worker');
   require('./workers/carbon-certificate.worker');
+  require('./workers/ocr.worker');
 }
 
 // Global API Router Placeholder
