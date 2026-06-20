@@ -13,7 +13,7 @@ export class GeminiVisionProvider implements OcrProvider {
   }
 
   async extract(buffer: Buffer, mimeType: string): Promise<RawOcrResult> {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const imagePart = {
       inlineData: {

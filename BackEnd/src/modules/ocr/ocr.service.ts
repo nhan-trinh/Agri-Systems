@@ -70,6 +70,7 @@ export class OcrService {
           `Tệp "${file.originalname}" vượt quá giới hạn ${config.ocr.maxFileSizeMb}MB`,
         );
       }
+      this.validateFileSignature(file);
     }
 
     const storage = StorageFactory.getStorageService();
@@ -109,27 +110,35 @@ export class OcrService {
       })),
     });
 
-    // Enqueue a processing job for each document
-    await Promise.all(
-      batch.documents.map(doc =>
-        ocrDocumentQueue.add('process', {
+    const documentStatuses = new Map(batch.documents.map(doc => [doc.id, doc.status]));
+
+    // Enqueue each document independently so a Redis hiccup cannot strand the whole batch.
+    for (const doc of batch.documents) {
+      try {
+        await ocrDocumentQueue.add('process', {
           document_id: doc.id,
           batch_id: batch.id,
           cooperative_id: cooperativeId,
           object_key: doc.object_key,
           hint: fields.document_hint,
           season_id: fields.season_id,
-        }),
-      ),
-    );
+        }, { jobId: doc.id });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Không thể đưa tài liệu vào hàng đợi OCR';
+        await ocrRepository.markDocumentEnqueueFailed(doc.id, message);
+        documentStatuses.set(doc.id, OcrDocumentStatus.ERROR);
+      }
+    }
+
+    const batchStatus = await ocrRepository.recomputeBatchStatus(batch.id);
 
     return {
       batch_id: batch.id,
-      status: batch.status,
+      status: batchStatus,
       documents: batch.documents.map(d => ({
         document_id: d.id,
         filename: d.original_filename,
-        status: d.status,
+        status: documentStatuses.get(d.id) ?? d.status,
       })),
     };
   }
@@ -239,8 +248,8 @@ export class OcrService {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền chỉnh sửa bản nháp này');
     }
 
-    if (draft.status === 'CONFIRMED') {
-      throw new AppError('OCR_DRAFT_ALREADY_CONFIRMED', 409, 'Không thể chỉnh sửa bản nháp đã xác nhận');
+    if (draft.status === 'CONFIRMED' || draft.status === 'CONFIRMING') {
+      throw new AppError('OCR_DRAFT_LOCKED', 409, 'Không thể chỉnh sửa bản nháp đang hoặc đã xác nhận');
     }
 
     // Re-validate the confirmed payload against the target entity schema
@@ -337,12 +346,19 @@ export class OcrService {
       error_message: null,
     });
 
-    await ocrDocumentQueue.add('process', {
-      document_id: doc.id,
-      batch_id: doc.batch_id,
-      cooperative_id: doc.cooperative_id,
-      object_key: doc.object_key,
-    });
+    try {
+      await ocrDocumentQueue.add('process', {
+        document_id: doc.id,
+        batch_id: doc.batch_id,
+        cooperative_id: doc.cooperative_id,
+        object_key: doc.object_key,
+      }, { jobId: doc.id });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể đưa tài liệu vào hàng đợi OCR';
+      await ocrRepository.markDocumentEnqueueFailed(documentId, message);
+      await ocrRepository.recomputeBatchStatus(doc.batch_id);
+      throw new AppError('OCR_QUEUE_ENQUEUE_FAILED', 503, 'Không thể đưa tài liệu vào hàng đợi OCR. Vui lòng thử lại sau.');
+    }
 
     await ocrAuditService.log({
       document_id: documentId,
@@ -374,6 +390,38 @@ export class OcrService {
     // Strip path separators + collapse to a safe filename
     const base = path.basename(filename);
     return base.replace(/[^a-zA-Z0-9._-]/g, '_');
+  }
+
+  private validateFileSignature(file: Express.Multer.File): void {
+    const header = file.buffer.subarray(0, 8);
+    const isJpeg = header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    const isPng = header.length >= 8
+      && header[0] === 0x89
+      && header[1] === 0x50
+      && header[2] === 0x4e
+      && header[3] === 0x47
+      && header[4] === 0x0d
+      && header[5] === 0x0a
+      && header[6] === 0x1a
+      && header[7] === 0x0a;
+    const isPdf = header.length >= 4
+      && header[0] === 0x25
+      && header[1] === 0x50
+      && header[2] === 0x44
+      && header[3] === 0x46;
+
+    const matchesMime =
+      (file.mimetype === 'image/jpeg' && isJpeg)
+      || (file.mimetype === 'image/png' && isPng)
+      || (file.mimetype === 'application/pdf' && isPdf);
+
+    if (!matchesMime) {
+      throw new AppError(
+        'INVALID_FILE_CONTENT',
+        400,
+        `Nội dung tệp "${file.originalname}" không khớp với định dạng khai báo.`,
+      );
+    }
   }
 }
 

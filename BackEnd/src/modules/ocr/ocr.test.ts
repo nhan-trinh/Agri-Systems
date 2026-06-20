@@ -17,7 +17,10 @@ jest.mock('./ocr.repository');
 jest.mock('./ocr.audit.service');
 jest.mock('./ocr.validation.service');
 jest.mock('../../shared/queues/ocr.queue', () => ({
-  ocrDocumentQueue: { add: jest.fn().mockResolvedValue({}) },
+  ocrDocumentQueue: {
+    add: jest.fn().mockResolvedValue({}),
+    close: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 jest.mock('../../shared/storage/storage.factory', () => ({
   __esModule: true,
@@ -64,20 +67,42 @@ const mockAdmin = {
   isFirstLogin: false,
 };
 
-function makeFile(filename: string, mime = 'image/jpeg', size = 1024): Express.Multer.File {
+function makeBufferForMime(mime: string, size: number): Buffer {
+  const buffer = Buffer.alloc(size, 1);
+  if (mime === 'image/jpeg') {
+    buffer[0] = 0xff;
+    buffer[1] = 0xd8;
+    buffer[2] = 0xff;
+  } else if (mime === 'image/png') {
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(buffer);
+  } else if (mime === 'application/pdf') {
+    Buffer.from('%PDF').copy(buffer);
+  }
+  return buffer;
+}
+
+function makeFile(filename: string, mime = 'image/jpeg', size = 1024, buffer?: Buffer): Express.Multer.File {
+  const finalBuffer = buffer ?? makeBufferForMime(mime, size);
   return {
     fieldname: 'files',
     originalname: filename,
     encoding: '7bit',
     mimetype: mime,
-    size,
-    buffer: Buffer.alloc(size, 1),
+    size: finalBuffer.length,
+    buffer: finalBuffer,
     destination: '',
     filename: '',
     path: '',
     stream: null as never,
   };
 }
+
+afterAll(async () => {
+  const queue = ocrDocumentQueue as unknown as { close?: () => Promise<void> };
+  if (typeof queue.close === 'function') {
+    await queue.close();
+  }
+});
 
 // ── Provider unit tests (no mocking) ─────────────────────────────
 
@@ -137,6 +162,7 @@ describe('Stub Provider Adapters', () => {
 describe('OcrService — uploadBatch', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRepo.recomputeBatchStatus.mockResolvedValue('QUEUED' as never);
   });
 
   it('saves files, creates batch + documents, and enqueues jobs (202 flow)', async () => {
@@ -151,8 +177,8 @@ describe('OcrService — uploadBatch', () => {
       created_at: new Date(),
       updated_at: new Date(),
       documents: [
-        { id: 'doc-1', original_filename: 'a.jpg', status: 'QUEUED' },
-        { id: 'doc-2', original_filename: 'b.jpg', status: 'QUEUED' },
+        { id: 'doc-1', original_filename: 'a.jpg', object_key: 'ocr/coop-1/a.jpg', status: 'QUEUED' },
+        { id: 'doc-2', original_filename: 'b.jpg', object_key: 'ocr/coop-1/b.jpg', status: 'QUEUED' },
       ] as never[],
     });
 
@@ -169,6 +195,35 @@ describe('OcrService — uploadBatch', () => {
     expect(result.documents).toHaveLength(2);
   });
 
+  it('marks documents ERROR instead of stranding them when queue enqueue fails', async () => {
+    mockRepo.createBatchWithDocuments.mockResolvedValue({
+      id: 'batch-queue-fail',
+      cooperative_id: 'coop-1',
+      uploaded_by: 'mgr-1',
+      status: 'QUEUED',
+      total_files: 1,
+      processed_files: 0,
+      failed_files: 0,
+      created_at: new Date(),
+      updated_at: new Date(),
+      documents: [
+        { id: 'doc-fail', original_filename: 'a.jpg', object_key: 'ocr/coop-1/a.jpg', status: 'QUEUED' },
+      ] as never[],
+    });
+    mockRepo.recomputeBatchStatus.mockResolvedValue('ERROR' as never);
+    (ocrDocumentQueue.add as jest.Mock).mockRejectedValueOnce(new Error('redis down'));
+
+    const result = await ocrService.uploadBatch(
+      [makeFile('a.jpg')],
+      { document_hint: 'AUTO' } as never,
+      mockManager,
+    );
+
+    expect(mockRepo.markDocumentEnqueueFailed).toHaveBeenCalledWith('doc-fail', 'redis down');
+    expect(result.status).toBe('ERROR');
+    expect(result.documents[0].status).toBe(OcrDocumentStatus.ERROR);
+  });
+
   it('rejects when no files are provided', async () => {
     await expect(
       ocrService.uploadBatch([], { document_hint: 'AUTO' } as never, mockManager),
@@ -183,6 +238,16 @@ describe('OcrService — uploadBatch', () => {
         mockManager,
       ),
     ).rejects.toThrow('không đúng định dạng');
+  });
+
+  it('rejects files whose content signature does not match the declared MIME type', async () => {
+    await expect(
+      ocrService.uploadBatch(
+        [makeFile('spoof.jpg', 'image/jpeg', 8, Buffer.from('notimage'))],
+        { document_hint: 'AUTO' } as never,
+        mockManager,
+      ),
+    ).rejects.toThrow('không khớp với định dạng');
   });
 
   it('requires cooperative_id from JWT (security: never from body)', async () => {
@@ -264,7 +329,12 @@ describe('OcrService — getDocumentReview RBAC', () => {
 // ── OcrConfirmationService ───────────────────────────────────────
 
 describe('OcrConfirmationService', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRepo.claimDraftForConfirmation.mockResolvedValue(true);
+    mockRepo.releaseDraftConfirmation.mockResolvedValue(undefined);
+    mockRepo.recomputeBatchStatus.mockResolvedValue('CONFIRMED' as never);
+  });
 
   it('confirms a FARMING_LOG draft by calling farmingLogService.createLog', async () => {
     mockRepo.findDraftById.mockResolvedValue({
@@ -297,6 +367,7 @@ describe('OcrConfirmationService', () => {
     expect(mockRepo.markDraftConfirmed).toHaveBeenCalledWith(
       'draft-1', 'flog-1', 'mgr-1', expect.anything(), 'FARMING_LOG', 'doc-1',
     );
+    expect(mockRepo.claimDraftForConfirmation).toHaveBeenCalledWith('draft-1');
     expect(result.status).toBe('CONFIRMED');
     expect(result.official_record).toEqual({ type: 'FARMING_LOG', id: 'flog-1' });
   });
@@ -370,7 +441,7 @@ describe('OcrConfirmationService', () => {
     expect(mockRepo.markDraftConfirmed).not.toHaveBeenCalled();
   });
 
-  it('rejects a draft that is already CONFIRMED', async () => {
+  it('returns the official record idempotently when a draft is already CONFIRMED', async () => {
     mockRepo.findDraftById.mockResolvedValue({
       id: 'draft-4',
       document_id: 'doc-4',
@@ -394,7 +465,41 @@ describe('OcrConfirmationService', () => {
 
     await expect(
       ocrConfirmationService.confirmDraft('draft-4', mockManager),
-    ).rejects.toThrow('đã được xác nhận');
+    ).resolves.toEqual({
+      draft_id: 'draft-4',
+      status: 'CONFIRMED',
+      official_record: { type: 'FARMING_LOG', id: 'flog-x' },
+    });
+  });
+
+  it('blocks concurrent confirmation when the draft cannot be claimed', async () => {
+    mockRepo.findDraftById.mockResolvedValue({
+      id: 'draft-lock',
+      document_id: 'doc-lock',
+      target_entity: 'FARMING_LOG',
+      status: OcrDraftStatus.DRAFT,
+      raw_extracted_data: {},
+      ai_normalized_data: {},
+      confirmed_data: null,
+      validation_errors: null,
+      confidence_score: null,
+      official_record_id: null,
+      confirmed_by: null,
+      confirmed_at: null,
+      rejected_by: null,
+      rejected_at: null,
+      rejection_reason: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+      document: { id: 'doc-lock', cooperative_id: 'coop-1' } as never,
+    });
+    mockRepo.claimDraftForConfirmation.mockResolvedValue(false);
+
+    await expect(
+      ocrConfirmationService.confirmDraft('draft-lock', mockManager),
+    ).rejects.toThrow('đang được xác nhận');
+
+    expect(mockFarmingLogService.createLog).not.toHaveBeenCalled();
   });
 
   it('enforces cooperative RBAC on confirmation', async () => {
@@ -532,7 +637,11 @@ describe('OcrService — retryDocument', () => {
     expect(mockRepo.updateDocumentStatus).toHaveBeenCalledWith(
       'doc-f', OcrDocumentStatus.QUEUED, { error_code: null, error_message: null },
     );
-    expect(ocrDocumentQueue.add).toHaveBeenCalledWith('process', expect.objectContaining({ document_id: 'doc-f' }));
+    expect(ocrDocumentQueue.add).toHaveBeenCalledWith(
+      'process',
+      expect.objectContaining({ document_id: 'doc-f' }),
+      { jobId: 'doc-f' },
+    );
     expect(result.status).toBe(OcrDocumentStatus.QUEUED);
   });
 

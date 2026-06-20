@@ -17,7 +17,7 @@ export class GeminiNormalizer implements AiNormalizer {
     hint?: string,
     coopContext?: CooperativeContext,
   ): Promise<NormalizedDraft[]> {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const prompt = this.buildPrompt(rawText, hint, coopContext);
 

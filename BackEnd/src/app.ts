@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import path from 'path';
 import config from './config/app.config';
 import responseHelper from './shared/utils/response.helper';
+import { requireAuth } from './modules/auth/auth.middleware';
+import { UserRole } from '@prisma/client';
 
 const app = express();
 
@@ -34,7 +36,16 @@ if (config.env !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Serve static uploads
+// Serve static uploads. OCR originals are sensitive, so local-storage OCR paths
+// require auth before falling through to express.static.
+app.use('/uploads/ocr/:cooperativeId', requireAuth, (req: Request, res: Response, next: NextFunction) => {
+  const requestedCoop = req.params.cooperativeId;
+  if (req.user?.role === UserRole.SUPER_ADMIN || req.user?.cooperativeId === requestedCoop) {
+    return next();
+  }
+
+  return responseHelper.error(res, 'FORBIDDEN', 'Bạn không có quyền truy cập tệp OCR này', [], 403);
+});
 app.use('/uploads', express.static(path.resolve(process.cwd(), config.storage?.localPath || './public/uploads')));
 
 // Health Check

@@ -7,7 +7,7 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 /**
  * Multer config for OCR batch uploads.
  * - Memory storage (we save to object storage ourselves, not disk).
- * - Magic-byte content validation in addition to MIME type (defense in depth).
+ * - MIME pre-filter here; OcrService validates magic bytes once the file buffer is available.
  * - Limits: 10MB/file (BR-007-1), 10 files/batch.
  */
 const fileFilter = (_req: unknown, file: Express.Multer.File, cb: FileFilterCallback) => {

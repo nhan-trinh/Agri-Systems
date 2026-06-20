@@ -96,6 +96,13 @@ interface Farmer {
   farmer_code: string;
 }
 
+const toSafeISOString = (dateStr: string | undefined | null): string | undefined => {
+  if (!dateStr) return undefined;
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return dateStr;
+  return parsed.toISOString();
+};
+
 export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
   const [loading, setLoading] = useState(true);
   const [reviewData, setReviewData] = useState<DocumentReviewData | null>(null);
@@ -124,6 +131,9 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
   // Toast notification
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // File preview source
+  const [previewSrc, setPreviewSrc] = useState<string>('');
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -131,18 +141,40 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
 
   // Load Review data and dropdown lookups
   useEffect(() => {
+    let activeBlobUrl = '';
+
     const loadData = async () => {
       try {
         setLoading(true);
         // Load main document review payload
         const resReview = await apiClient.get(`/ocr/documents/${documentId}/review`);
         if (resReview.data?.success) {
-          setReviewData(resReview.data.data);
+          const data = resReview.data.data;
+          setReviewData(data);
           
           // Set initial form state for the first draft
-          const firstDraft = resReview.data.data.draft_records[0];
+          const firstDraft = data.draft_records[0];
           if (firstDraft) {
             initForm(firstDraft);
+          }
+
+          // Handle file preview URL loading
+          const rawUrl = data.document?.file_preview_url;
+          if (rawUrl) {
+            if (rawUrl.includes('/uploads/ocr/')) {
+              // Local storage OCR file: needs authorization headers to download
+              try {
+                const response = await apiClient.get(rawUrl, { responseType: 'blob' });
+                const blobUrl = URL.createObjectURL(response.data);
+                activeBlobUrl = blobUrl;
+                setPreviewSrc(blobUrl);
+              } catch (err) {
+                console.error('Failed to fetch local preview blob:', err);
+                setPreviewSrc(rawUrl);
+              }
+            } else {
+              setPreviewSrc(rawUrl);
+            }
           }
         }
 
@@ -166,6 +198,12 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
     };
 
     loadData();
+
+    return () => {
+      if (activeBlobUrl) {
+        URL.revokeObjectURL(activeBlobUrl);
+      }
+    };
   }, [documentId]);
 
   const initForm = (draft: DraftRecord) => {
@@ -173,18 +211,48 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
     
     // Safely format dates to YYYY-MM-DD for standard html inputs
     const formattedData = { ...data };
-    if (formattedData.activity_date) {
-      formattedData.activity_date = new Date(formattedData.activity_date as string).toISOString().split('T')[0];
+    
+    try {
+      if (formattedData.activity_date) {
+        formattedData.activity_date = new Date(formattedData.activity_date as string).toISOString().split('T')[0];
+      }
+    } catch {
+      console.warn('Invalid activity_date:', formattedData.activity_date);
     }
-    if (formattedData.transaction_date) {
-      formattedData.transaction_date = new Date(formattedData.transaction_date as string).toISOString().split('T')[0];
+
+    try {
+      if (formattedData.transaction_date) {
+        formattedData.transaction_date = new Date(formattedData.transaction_date as string).toISOString().split('T')[0];
+      }
+    } catch {
+      console.warn('Invalid transaction_date:', formattedData.transaction_date);
     }
-    if (formattedData.expiry_date) {
-      formattedData.expiry_date = new Date(formattedData.expiry_date as string).toISOString().split('T')[0];
+
+    try {
+      if (formattedData.expiry_date) {
+        formattedData.expiry_date = new Date(formattedData.expiry_date as string).toISOString().split('T')[0];
+      }
+    } catch {
+      console.warn('Invalid expiry_date:', formattedData.expiry_date);
     }
 
     setFormData(formattedData);
-    setValidationErrors(draft.validation_errors || []);
+    
+    // Filter out initial ISO 8601 validation errors for dates if they are successfully formatted/valid
+    const filteredErrors = (draft.validation_errors || []).filter(err => {
+      if (err.field === 'transaction_date' && formattedData.transaction_date) {
+        return false;
+      }
+      if (err.field === 'activity_date' && formattedData.activity_date) {
+        return false;
+      }
+      if (err.field === 'expiry_date' && formattedData.expiry_date) {
+        return false;
+      }
+      return true;
+    });
+
+    setValidationErrors(filteredErrors);
   };
 
   // Handle draft selection changes
@@ -212,15 +280,10 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
       // Clean payload: re-convert date inputs to ISO strings for NestJS validators
       const payload = { ...formData };
       
-      if (payload.activity_date) {
-        payload.activity_date = new Date(payload.activity_date).toISOString();
-      }
-      if (payload.transaction_date) {
-        payload.transaction_date = new Date(payload.transaction_date).toISOString();
-      }
-      if (payload.expiry_date) {
-        payload.expiry_date = new Date(payload.expiry_date).toISOString();
-      }
+      payload.activity_date = toSafeISOString(payload.activity_date);
+      payload.transaction_date = toSafeISOString(payload.transaction_date);
+      payload.expiry_date = toSafeISOString(payload.expiry_date);
+
       if (payload.quantity) {
         payload.quantity = Number(payload.quantity);
       }
@@ -288,9 +351,10 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
       setConfirming(true);
       // Ensure local edits are saved first or run directly
       const payload = { ...formData };
-      if (payload.activity_date) payload.activity_date = new Date(payload.activity_date).toISOString();
-      if (payload.transaction_date) payload.transaction_date = new Date(payload.transaction_date).toISOString();
-      if (payload.expiry_date) payload.expiry_date = new Date(payload.expiry_date).toISOString();
+      payload.activity_date = toSafeISOString(payload.activity_date);
+      payload.transaction_date = toSafeISOString(payload.transaction_date);
+      payload.expiry_date = toSafeISOString(payload.expiry_date);
+      
       if (payload.quantity) payload.quantity = Number(payload.quantity);
       if (payload.quantity_kg) payload.quantity_kg = Number(payload.quantity_kg);
       if (payload.dosage) payload.dosage = Number(payload.dosage);
@@ -312,8 +376,9 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
         }, 1000);
       }
     } catch (err: unknown) {
-      console.error('Confirm failed:', err);
-      const error = err as { response?: { data?: { message?: string; validation_errors?: ValidationError[] } } };
+      const error = err as { response?: { data?: { message?: string; code?: string; details?: unknown[]; validation_errors?: ValidationError[] }; status?: number } };
+      console.error('Confirm failed — status:', error.response?.status, 'body:', JSON.stringify(error.response?.data, null, 2));
+      
       const msg = error.response?.data?.message || 'Ghi sổ thất bại. Vui lòng kiểm tra lại thông tin lỗi.';
       showToast(msg, 'error');
       
@@ -472,14 +537,14 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
           <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-stone-900 relative">
             {isPdf ? (
               <iframe
-                src={document.file_preview_url}
+                src={previewSrc}
                 className="w-full h-full border-0 bg-white rounded-lg"
                 title="Tài liệu PDF"
               />
             ) : (
               <div className="max-w-full max-h-full transition-transform duration-300 ease-out">
                 <img
-                  src={document.file_preview_url}
+                  src={previewSrc}
                   alt="Review preview"
                   style={{
                     transform: `rotate(${rotation}deg) scale(${zoom / 100})`,
