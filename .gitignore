@@ -7,3 +7,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .vscode
+BackEnd/service-account.json
+*.json
+service-account.json
