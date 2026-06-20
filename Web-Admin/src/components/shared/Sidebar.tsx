@@ -78,7 +78,7 @@ export function Sidebar() {
       title: 'Số hóa OCR',
       href: '/ocr',
       icon: FileSearch,
-      roles: ['HTX_MANAGER'],
+      roles: ['SUPER_ADMIN', 'HTX_MANAGER', 'WAREHOUSE_KEEPER'],
     },
     {
       title: 'Kho vật tư',

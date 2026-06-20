@@ -41,7 +41,11 @@ export class OcrWorker {
         }
 
         // Idempotency: skip if already processed
-        if (doc.status === OcrDocumentStatus.AWAITING_REVIEW || doc.status === OcrDocumentStatus.CONFIRMED) {
+        if (
+          doc.status === OcrDocumentStatus.AWAITING_REVIEW
+          || doc.status === OcrDocumentStatus.CONFIRMED
+          || doc.status === OcrDocumentStatus.REJECTED
+        ) {
           console.log(`[OcrWorker] Document ${documentId} already ${doc.status}, skipping`);
           return;
         }
@@ -123,12 +127,17 @@ export class OcrWorker {
           const message = error instanceof Error ? error.message : 'Unknown error';
           console.error(`[OcrWorker] Document ${documentId} failed:`, message);
 
-          // Mark document ERROR but keep the original file
-          await ocrRepository.updateDocumentStatus(documentId, OcrDocumentStatus.ERROR, {
-            error_code: 'OCR_PROCESSING_ERROR',
-            error_message: message,
-          });
-          await ocrRepository.recomputeBatchStatus(batchId);
+          const maxAttempts = typeof job.opts.attempts === 'number' ? job.opts.attempts : 1;
+          const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts;
+
+          if (isFinalAttempt) {
+            // Mark terminal ERROR only after BullMQ has exhausted configured retries.
+            await ocrRepository.updateDocumentStatus(documentId, OcrDocumentStatus.ERROR, {
+              error_code: 'OCR_PROCESSING_ERROR',
+              error_message: message,
+            });
+            await ocrRepository.recomputeBatchStatus(batchId);
+          }
 
           // Re-throw so BullMQ applies retry policy (3 attempts, exponential backoff)
           throw error;

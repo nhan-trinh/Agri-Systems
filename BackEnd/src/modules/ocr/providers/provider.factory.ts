@@ -1,6 +1,8 @@
 import { OcrProvider, AiNormalizer } from './ocr-provider.interface';
 import { StubOcrProvider } from './stub-ocr.provider';
 import { StubAiNormalizer } from './stub-ai.normalizer';
+import { GeminiVisionProvider } from './gemini-vision.provider';
+import { GeminiNormalizer } from './gemini.normalizer';
 import config from '../../../config/app.config';
 
 /**
@@ -8,14 +10,12 @@ import config from '../../../config/app.config';
  *
  * Selected by `config.ocr.provider`:
  * - 'stub'   → StubOcrProvider + StubAiNormalizer (default, no external calls)
- * - 'google' → Future: GoogleVisionProvider + GeminiNormalizer
+ * - 'google' → GeminiVisionProvider + GeminiNormalizer (uses Gemini to bypass Google Cloud Vision billing)
  */
 export function getOcrProvider(): OcrProvider {
   switch (config.ocr.provider) {
     case 'google':
-      // Future: return new GoogleVisionProvider();
-      console.warn('[OcrProviderFactory] Google Vision provider not yet implemented. Falling back to stub.');
-      return new StubOcrProvider();
+      return new GeminiVisionProvider();
     case 'stub':
     default:
       return new StubOcrProvider();
@@ -25,9 +25,7 @@ export function getOcrProvider(): OcrProvider {
 export function getAiNormalizer(): AiNormalizer {
   switch (config.ocr.provider) {
     case 'google':
-      // Future: return new GeminiNormalizer();
-      console.warn('[OcrProviderFactory] Gemini normalizer not yet implemented. Falling back to stub.');
-      return new StubAiNormalizer();
+      return new GeminiNormalizer();
     case 'stub':
     default:
       return new StubAiNormalizer();

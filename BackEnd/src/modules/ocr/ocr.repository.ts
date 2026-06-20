@@ -142,8 +142,12 @@ export class OcrRepository {
     ).length;
     const failed = docs.filter(d => d.status === 'ERROR').length;
 
+    const confirmed = docs.filter(d => d.status === OcrDocumentStatus.CONFIRMED).length;
+
     let status: OcrBatchStatus;
-    if (failed === total) {
+    if (total > 0 && confirmed === total) {
+      status = OcrBatchStatus.CONFIRMED;
+    } else if (failed === total) {
       status = OcrBatchStatus.ERROR;
     } else if (failed > 0) {
       status = OcrBatchStatus.PARTIALLY_FAILED;
@@ -180,6 +184,20 @@ export class OcrRepository {
     await prisma.ocrDocument.update({
       where: { id },
       data: { status, ...extra },
+    });
+  }
+
+  public async markDocumentEnqueueFailed(
+    id: string,
+    message: string,
+  ): Promise<void> {
+    await prisma.ocrDocument.update({
+      where: { id },
+      data: {
+        status: OcrDocumentStatus.ERROR,
+        error_code: 'QUEUE_ENQUEUE_FAILED',
+        error_message: message,
+      },
     });
   }
 
@@ -275,6 +293,22 @@ export class OcrRepository {
     });
   }
 
+  public async claimDraftForConfirmation(id: string): Promise<boolean> {
+    const result = await prisma.ocrDraftRecord.updateMany({
+      where: { id, status: OcrDraftStatus.DRAFT },
+      data: { status: OcrDraftStatus.CONFIRMING },
+    });
+
+    return result.count === 1;
+  }
+
+  public async releaseDraftConfirmation(id: string): Promise<void> {
+    await prisma.ocrDraftRecord.updateMany({
+      where: { id, status: OcrDraftStatus.CONFIRMING },
+      data: { status: OcrDraftStatus.DRAFT },
+    });
+  }
+
   public async markDraftConfirmed(
     draftId: string,
     officialRecordId: string,
@@ -283,36 +317,52 @@ export class OcrRepository {
     targetEntity: OcrTargetEntity,
     documentId: string,
   ): Promise<void> {
-    await prisma.ocrDraftRecord.update({
-      where: { id: draftId },
-      data: {
-        status: OcrDraftStatus.CONFIRMED,
-        official_record_id: officialRecordId,
-        confirmed_by: confirmedBy,
-        confirmed_at: new Date(),
-        confirmed_data: confirmedData,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.ocrDraftRecord.update({
+        where: { id: draftId },
+        data: {
+          status: OcrDraftStatus.CONFIRMED,
+          official_record_id: officialRecordId,
+          confirmed_by: confirmedBy,
+          confirmed_at: new Date(),
+          confirmed_data: confirmedData,
+        },
+      });
 
-    // Stamp the official record with OCR traceability.
-    // ocr_source_document_id is optional (String?), so use undefined when absent.
-    if (targetEntity === 'FARMING_LOG') {
-      await prisma.farmingLog.updateMany({
-        where: { id: officialRecordId },
-        data: {
-          ocr_draft_record_id: draftId,
-          ocr_source_document_id: documentId || undefined,
+      // Stamp the official record with OCR traceability.
+      // ocr_source_document_id is optional (String?), so use undefined when absent.
+      if (targetEntity === 'FARMING_LOG') {
+        await tx.farmingLog.updateMany({
+          where: { id: officialRecordId },
+          data: {
+            ocr_draft_record_id: draftId,
+            ocr_source_document_id: documentId || undefined,
+          },
+        });
+      } else {
+        await tx.warehouseTransaction.updateMany({
+          where: { id: officialRecordId },
+          data: {
+            ocr_draft_record_id: draftId,
+            ocr_source_document_id: documentId || undefined,
+          },
+        });
+      }
+
+      const remainingOpenDrafts = await tx.ocrDraftRecord.count({
+        where: {
+          document_id: documentId,
+          status: { in: [OcrDraftStatus.DRAFT, OcrDraftStatus.CONFIRMING] },
         },
       });
-    } else {
-      await prisma.warehouseTransaction.updateMany({
-        where: { id: officialRecordId },
-        data: {
-          ocr_draft_record_id: draftId,
-          ocr_source_document_id: documentId || undefined,
-        },
-      });
-    }
+
+      if (remainingOpenDrafts === 0) {
+        await tx.ocrDocument.update({
+          where: { id: documentId },
+          data: { status: OcrDocumentStatus.CONFIRMED },
+        });
+      }
+    });
   }
 
   // ── AUDIT ──────────────────────────────────────────

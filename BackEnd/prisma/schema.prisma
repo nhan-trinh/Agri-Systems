@@ -503,6 +503,7 @@ enum OcrTargetEntity {
 
 enum OcrDraftStatus {
   DRAFT
+  CONFIRMING
   CONFIRMED
   REJECTED
 }

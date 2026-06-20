@@ -5,7 +5,7 @@ import { farmingLogService } from '../farming-log/farming-log.service';
 import { warehouseService } from '../warehouse/warehouse.service';
 import { AppError } from '../../shared/utils/app-error';
 import { JwtPayload } from '../auth/auth.types';
-import { OcrTargetEntity } from '@prisma/client';
+import { OcrDraftStatus, OcrTargetEntity } from '@prisma/client';
 import { ConfirmDraftResponse } from './ocr.types';
 
 /**
@@ -37,24 +37,60 @@ export class OcrConfirmationService {
       throw new AppError('FORBIDDEN', 403, 'Bạn chỉ được phép xác nhận tài liệu OCR thuộc hợp tác xã của mình');
     }
 
-    if (draft.status === 'CONFIRMED') {
+    if (draft.status === OcrDraftStatus.CONFIRMED && draft.official_record_id) {
+      return {
+        draft_id: draftId,
+        status: 'CONFIRMED',
+        official_record: {
+          type: draft.target_entity === 'FARMING_LOG' ? 'FARMING_LOG' : 'WAREHOUSE_TRANSACTION',
+          id: draft.official_record_id,
+        },
+      };
+    }
+
+    if (draft.status === OcrDraftStatus.CONFIRMED) {
       throw new AppError('OCR_DRAFT_ALREADY_CONFIRMED', 409, 'Bản nháp này đã được xác nhận');
     }
 
     // Use confirmed_data if the reviewer saved edits; otherwise fall back to ai_normalized_data
     const payload = (draft.confirmed_data ?? draft.ai_normalized_data) as Record<string, unknown>;
 
+    if (draft.status === OcrDraftStatus.CONFIRMING) {
+      throw new AppError('OCR_DRAFT_CONFIRMING', 409, 'Bản nháp này đang được xác nhận. Vui lòng chờ trong giây lát.');
+    }
+
+    const claimed = await ocrRepository.claimDraftForConfirmation(draftId);
+    if (!claimed) {
+      const latest = await ocrRepository.findDraftById(draftId);
+      if (latest?.status === OcrDraftStatus.CONFIRMED && latest.official_record_id) {
+        return {
+          draft_id: draftId,
+          status: 'CONFIRMED',
+          official_record: {
+            type: latest.target_entity === 'FARMING_LOG' ? 'FARMING_LOG' : 'WAREHOUSE_TRANSACTION',
+            id: latest.official_record_id,
+          },
+        };
+      }
+      throw new AppError('OCR_DRAFT_CONFIRMING', 409, 'Bản nháp này đang được xác nhận. Vui lòng chờ trong giây lát.');
+    }
+
     let officialId: string;
     let targetType: OcrTargetEntity;
 
-    if (draft.target_entity === 'FARMING_LOG') {
-      targetType = 'FARMING_LOG';
-      officialId = await this.confirmFarmingLog(draft, payload, user);
-    } else if (draft.target_entity === 'WAREHOUSE_TRANSACTION') {
-      targetType = 'WAREHOUSE_TRANSACTION';
-      officialId = await this.confirmWarehouseTransaction(draft, payload, user);
-    } else {
-      throw new AppError('OCR_UNKNOWN_TARGET', 400, 'Loại bản ghi đích không hợp lệ');
+    try {
+      if (draft.target_entity === 'FARMING_LOG') {
+        targetType = 'FARMING_LOG';
+        officialId = await this.confirmFarmingLog(draft, payload, user);
+      } else if (draft.target_entity === 'WAREHOUSE_TRANSACTION') {
+        targetType = 'WAREHOUSE_TRANSACTION';
+        officialId = await this.confirmWarehouseTransaction(draft, payload, user);
+      } else {
+        throw new AppError('OCR_UNKNOWN_TARGET', 400, 'Loại bản ghi đích không hợp lệ');
+      }
+    } catch (error) {
+      await ocrRepository.releaseDraftConfirmation(draftId);
+      throw error;
     }
 
     // Stamp draft CONFIRMED + stamp official record with OCR traceability fields
@@ -77,6 +113,10 @@ export class OcrConfirmationService {
       ip_address: req?.ip,
       user_agent: req?.get?.('user-agent'),
     });
+
+    if (draft.document?.batch_id) {
+      await ocrRepository.recomputeBatchStatus(draft.document.batch_id);
+    }
 
     return {
       draft_id: draftId,
