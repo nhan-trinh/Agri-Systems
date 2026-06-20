@@ -882,8 +882,9 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
                       <div className="space-y-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-stone-600">Nhà cung cấp <span className="text-red-500">*</span></label>
+                            <label htmlFor="supplier" className="text-xs font-bold text-stone-600">Nhà cung cấp <span className="text-red-500">*</span></label>
                             <input
+                              id="supplier"
                               type="text"
                               value={formData.supplier || ''}
                               onChange={(e) => handleInputChange('supplier', e.target.value)}
@@ -896,8 +897,9 @@ export function OCRReviewPanel({ documentId, onClose }: OCRReviewPanelProps) {
                             )}
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-stone-600">Số hóa đơn <span className="text-red-500">*</span></label>
+                            <label htmlFor="invoice_no" className="text-xs font-bold text-stone-600">Số hóa đơn <span className="text-red-500">*</span></label>
                             <input
+                              id="invoice_no"
                               type="text"
                               value={formData.invoice_no || ''}
                               onChange={(e) => handleInputChange('invoice_no', e.target.value)}

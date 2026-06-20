@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Fragment } from 'react';
 import { apiClient } from '../../lib/api/axios';
 import {
   UploadCloud,
@@ -557,10 +557,9 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
                     const isExpanded = expandedBatchId === batch.batch_id;
                     const dateStr = new Date(batch.created_at).toLocaleString('vi-VN');
                     return (
-                      <>
+                      <Fragment key={batch.batch_id}>
                         {/* Main Batch Row */}
                         <tr
-                          key={batch.batch_id}
                           className={`hover:bg-[#fbfcf9] cursor-pointer transition-colors ${
                             isExpanded ? 'bg-[#f7f9f5]' : ''
                           }`}
@@ -665,7 +664,7 @@ export function OCRDashboard({ onReview }: OCRDashboardProps) {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
