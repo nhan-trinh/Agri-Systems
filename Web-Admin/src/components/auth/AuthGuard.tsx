@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import axios from 'axios';
 
-const PUBLIC_ROUTES = ['/login'];
+const PUBLIC_ROUTES = ['/login', '/forgot-password'];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, accessToken, isInitialized, setAuth, setInitialized, logout } = useAuthStore();

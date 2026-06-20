@@ -1,36 +1,15 @@
 import { z } from 'zod';
 import { ActivityType } from '@prisma/client';
 
-export const BaseFarmingLogObject = z.object({
-  season_id: z.string().min(1, 'Mã vụ mùa không được để trống'),
-  activity_date: z.string().min(1, 'Ngày thực hiện không được để trống').transform((val) => new Date(val)),
-  activity_type: z.nativeEnum(ActivityType, {
-    errorMap: () => ({ message: 'Loại hoạt động không hợp lệ' }),
-  }),
-  notes: z.string().optional(),
-  photo_urls: z.array(z.string()).default([]),
-  
-  // Fertilizing fields
-  fertilizer_type: z.string().optional(),
-  quantity_kg: z.number().positive('Số lượng phân bón phải là số dương').optional(),
-  
-  // Pesticide fields
-  product_name: z.string().optional(),
-  dosage: z.number().positive('Liều lượng thuốc phải là số dương').optional(),
-  unit: z.string().optional(),
-  
-  // Irrigation fields
-  water_volume_m3: z.number().positive('Lượng nước phải là số dương').optional(),
-  duration_hours: z.number().positive('Thời gian tưới phải là số dương').optional(),
-  
-  // Harvesting fields
-  yield_kg: z.number().positive('Sản lượng thu hoạch phải là số dương').optional(),
-  harvest_method: z.string().optional(),
-});
+// ==================== SHARED VALIDATION LOGIC ====================
 
-export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) => {
+/**
+ * Conditional field validation based on activity_type.
+ * Used by both Create and Update DTOs.
+ */
+function applyActivityTypeRefinements(data: Record<string, unknown>, ctx: z.RefinementCtx): void {
   if (data.activity_type === ActivityType.FERTILIZING) {
-    if (!data.fertilizer_type || data.fertilizer_type.trim() === '') {
+    if (!data.fertilizer_type || (data.fertilizer_type as string).trim() === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fertilizer_type'],
@@ -47,7 +26,7 @@ export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) 
   }
 
   if (data.activity_type === ActivityType.PESTICIDE) {
-    if (!data.product_name || data.product_name.trim() === '') {
+    if (!data.product_name || (data.product_name as string).trim() === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['product_name'],
@@ -61,7 +40,7 @@ export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) 
         message: 'Liều lượng phun không được để trống khi phun thuốc',
       });
     }
-    if (!data.unit || data.unit.trim() === '') {
+    if (!data.unit || (data.unit as string).trim() === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['unit'],
@@ -95,7 +74,7 @@ export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) 
         message: 'Sản lượng thu hoạch không được để trống khi gặt hái',
       });
     }
-    if (!data.harvest_method || data.harvest_method.trim() === '') {
+    if (!data.harvest_method || (data.harvest_method as string).trim() === '') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['harvest_method'],
@@ -103,6 +82,69 @@ export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) 
       });
     }
   }
+}
+
+// ==================== BASE SCHEMA ====================
+
+export const BaseFarmingLogObject = z.object({
+  season_id: z.string().min(1, 'Mã vụ mùa không được để trống'),
+  activity_date: z.string().min(1, 'Ngày thực hiện không được để trống').transform((val) => new Date(val)),
+  activity_type: z.nativeEnum(ActivityType, {
+    errorMap: () => ({ message: 'Loại hoạt động không hợp lệ' }),
+  }),
+  notes: z.string().optional(),
+  photo_urls: z.array(z.string()).default([]),
+  material_id: z.string().cuid('Mã vật tư không hợp lệ').optional().nullable(),
+  
+  // Fertilizing fields
+  fertilizer_type: z.string().optional(),
+  quantity_kg: z.number().positive('Số lượng phân bón phải là số dương').optional(),
+  
+  // Pesticide fields
+  product_name: z.string().optional(),
+  dosage: z.number().positive('Liều lượng thuốc phải là số dương').optional(),
+  unit: z.string().optional(),
+  
+  // Irrigation fields
+  water_volume_m3: z.number().positive('Lượng nước phải là số dương').optional(),
+  duration_hours: z.number().positive('Thời gian tưới phải là số dương').optional(),
+  
+  // Harvesting fields
+  yield_kg: z.number().positive('Sản lượng thu hoạch phải là số dương').optional(),
+  harvest_method: z.string().optional(),
 });
 
-export const UpdateFarmingLogDto = BaseFarmingLogObject.partial();
+// ==================== CREATE DTO ====================
+
+export const CreateFarmingLogDto = BaseFarmingLogObject.superRefine((data, ctx) => {
+  applyActivityTypeRefinements(data, ctx);
+});
+
+// ==================== UPDATE DTO ====================
+
+// R-10: Update DTO preserves superRefine validation and blocks activity_type changes.
+// `activity_type` is intentionally excluded — changing the type of an existing log is forbidden.
+// `season_id` is also excluded — you cannot move a log to a different season.
+export const UpdateFarmingLogDto = z.object({
+  activity_date: z.string().transform((val) => new Date(val)).optional(),
+  notes: z.string().optional(),
+  photo_urls: z.array(z.string()).optional(),
+  material_id: z.string().cuid('Mã vật tư không hợp lệ').optional().nullable(),
+
+  // Fertilizing fields
+  fertilizer_type: z.string().optional(),
+  quantity_kg: z.number().positive('Số lượng phân bón phải là số dương').optional(),
+
+  // Pesticide fields
+  product_name: z.string().optional(),
+  dosage: z.number().positive('Liều lượng thuốc phải là số dương').optional(),
+  unit: z.string().optional(),
+
+  // Irrigation fields
+  water_volume_m3: z.number().positive('Lượng nước phải là số dương').optional(),
+  duration_hours: z.number().positive('Thời gian tưới phải là số dương').optional(),
+
+  // Harvesting fields
+  yield_kg: z.number().positive('Sản lượng thu hoạch phải là số dương').optional(),
+  harvest_method: z.string().optional(),
+});

@@ -32,8 +32,31 @@ export const config = {
   },
   bullRedisUrl: process.env.BULL_REDIS_URL || 'redis://localhost:6379',
   storage: {
+    // 'local' (dev) | 'r2' (Cloudflare R2, S3-compatible) | 's3' (alias of r2)
     type: process.env.STORAGE_TYPE || 'local',
     localPath: process.env.STORAGE_LOCAL_PATH || './uploads',
+    r2: {
+      // Cloudflare R2 — S3-compatible. Endpoint is derived from accountId.
+      accountId: process.env.R2_ACCOUNT_ID || '',
+      bucket: process.env.R2_BUCKET || '',
+      accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+      // Optional custom domain / public base URL (for non-presigned URLs). Private by default.
+      publicBaseUrl: process.env.R2_PUBLIC_BASE_URL || '',
+      // Presigned URL lifetime in seconds (default 15 min).
+      presignExpirySec: parseInt(process.env.R2_PRESIGN_EXPIRY_SEC || '900', 10),
+    },
+  },
+  ocr: {
+    // 'stub' = deterministic mock (pilot/demo). 'google' = future Google Vision + Gemini.
+    provider: process.env.OCR_PROVIDER || 'stub',
+    maxFileSizeMb: parseInt(process.env.OCR_MAX_FILE_MB || '10', 10),
+    maxFilesPerBatch: parseInt(process.env.OCR_MAX_FILES || '10', 10),
+    google: {
+      // Reserved for the future Google Vision + Gemini provider (not wired yet).
+      visionCredentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || '',
+      geminiApiKey: process.env.GEMINI_API_KEY || '',
+    },
   },
 };
 export default config;

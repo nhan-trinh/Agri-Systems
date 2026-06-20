@@ -144,6 +144,8 @@ model FarmingLog {
   activity_date   DateTime     @db.Date
   activity_type   ActivityType
   notes           String?
+  material_id     String?
+  material        Material?    @relation(fields: [material_id], references: [id])
   fertilizer_type String?
   quantity_kg     Float?
   product_name    String?
@@ -155,6 +157,10 @@ model FarmingLog {
   harvest_method  String?
   photo_urls      String[]
   created_by      String
+  // OCR traceability — links official record back to the scanned evidence (optional).
+  ocr_draft_record_id   String? @unique
+  ocr_source_document_id String?
+  deleted_at      DateTime?
   created_at      DateTime     @default(now())
   updated_at      DateTime     @updatedAt
 }
@@ -292,6 +298,7 @@ model Material {
   created_at      DateTime     @default(now())
   stock_item      StockItem?
   transactions    WarehouseTransaction[]
+  farming_logs    FarmingLog[]
 
   @@index([cooperative_id, is_active])
 }
@@ -320,6 +327,9 @@ model WarehouseTransaction {
   expiry_date         DateTime?       // hạn sử dụng lô hàng nhập
   notes               String?
   created_by          String          // userId
+  // OCR traceability — links official record back to the scanned evidence (optional).
+  ocr_draft_record_id   String? @unique
+  ocr_source_document_id String?
   // KHÔNG có updated_at — BR-005-5: phiếu đã tạo là bất biến
   created_at          DateTime        @default(now())
 
@@ -361,17 +371,143 @@ model Notification {
 
 // ==================== OCR & EXPORT JOBS ====================
 
-model OcrJob {
-  id            String     @id @default(cuid())
-  file_url      String
-  document_type OcrDocType
-  status        OcrStatus  @default(PENDING)
-  error_message String?
-  confirmed_at  DateTime?
-  confirmed_by  String?
-  created_by    String
-  created_at    DateTime   @default(now())
+// ── OCR pipeline (BR-007) ──────────────────────────
+// A user uploads a batch of files → each becomes one OcrDocument. A background
+// worker OCRs each document, classifies it, and produces OcrDraftRecord(s) that a
+// reviewer edits then confirms. Confirmation creates the official FarmingLog /
+// WarehouseTransaction. OcrAuditLog keeps the raw-vs-confirmed diff.
+
+model OcrBatch {
+  id              String        @id @default(cuid())
+  cooperative_id  String
+  uploaded_by     String
+  status          OcrBatchStatus @default(QUEUED)
+  total_files     Int
+  processed_files Int           @default(0)
+  failed_files    Int           @default(0)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  documents       OcrDocument[]
+
+  @@index([cooperative_id, status])
 }
+
+model OcrDocument {
+  id              String            @id @default(cuid())
+  batch_id        String
+  batch           OcrBatch          @relation(fields: [batch_id], references: [id])
+  cooperative_id  String
+  uploaded_by     String
+
+  original_filename String
+  mime_type         String
+  file_size_bytes   Int
+  page_count        Int?
+  file_sha256       String?
+  object_key        String
+
+  document_type     OcrDocumentType  @default(UNKNOWN)
+  status            OcrDocumentStatus @default(QUEUED)
+  error_code        String?
+  error_message     String?
+
+  raw_ocr_text      String?
+  raw_ocr_data      Json?
+  provider_name     String?
+  provider_metadata Json?
+
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  draft_records     OcrDraftRecord[]
+  audit_logs        OcrAuditLog[]
+
+  @@index([cooperative_id, status])
+  @@index([batch_id])
+}
+
+model OcrDraftRecord {
+  id                  String          @id @default(cuid())
+  document_id         String
+  document            OcrDocument     @relation(fields: [document_id], references: [id])
+
+  target_entity       OcrTargetEntity
+  status              OcrDraftStatus  @default(DRAFT)
+
+  raw_extracted_data  Json
+  ai_normalized_data  Json
+  confirmed_data      Json?
+  validation_errors   Json?
+  confidence_score    Float?
+
+  official_record_id  String?
+  confirmed_by        String?
+  confirmed_at        DateTime?
+  rejected_by         String?
+  rejected_at         DateTime?
+  rejection_reason    String?
+
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([document_id, status])
+  @@index([target_entity, official_record_id])
+}
+
+model OcrAuditLog {
+  id            String   @id @default(cuid())
+  document_id   String
+  document      OcrDocument @relation(fields: [document_id], references: [id])
+
+  actor_user_id String
+  action        String
+  before_data   Json?
+  after_data    Json?
+  diff          Json?
+  ip_address    String?
+  user_agent    String?
+  created_at    DateTime @default(now())
+
+  @@index([document_id])
+}
+
+enum OcrBatchStatus {
+  QUEUED
+  PROCESSING
+  AWAITING_REVIEW
+  PARTIALLY_FAILED
+  CONFIRMED
+  ERROR
+}
+
+enum OcrDocumentStatus {
+  QUEUED
+  PROCESSING
+  AWAITING_REVIEW
+  CONFIRMED
+  REJECTED
+  ERROR
+}
+
+enum OcrDocumentType {
+  FARMING_LOGBOOK
+  MATERIAL_INVOICE
+  UNKNOWN
+}
+
+enum OcrTargetEntity {
+  FARMING_LOG
+  WAREHOUSE_TRANSACTION
+}
+
+enum OcrDraftStatus {
+  DRAFT
+  CONFIRMED
+  REJECTED
+}
+
+// ── Export jobs (Carbon reports) ───────────────────
 
 model ExportJob {
   id           String       @id @default(cuid())
@@ -383,20 +519,6 @@ model ExportJob {
   expires_at   DateTime?
   created_by   String
   created_at   DateTime     @default(now())
-}
-
-enum OcrDocType {
-  FARMING_LOG
-  INVOICE
-}
-
-enum OcrStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  CONFIRMED
-  FAILED
-  REJECTED
 }
 
 enum ExportFormat {

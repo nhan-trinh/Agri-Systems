@@ -8,6 +8,7 @@ const PHONE_VN_REGEX = /^(?:\+84|0084|84|0)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-
 
 export const ZaloLoginDto = z.object({
   code: z.string().min(1, 'Auth code không được để trống'),
+  phone: z.string().regex(PHONE_VN_REGEX, 'So dien thoai khong hop le').optional(),
 });
 export type ZaloLoginInput = z.infer<typeof ZaloLoginDto>;
 
@@ -65,3 +66,4 @@ export const ResetPasswordDto = z.object({
   new_password: z.string().min(8, 'Mật khẩu mới tối thiểu 8 ký tự'),
 });
 export type ResetPasswordInput = z.infer<typeof ResetPasswordDto>;
+

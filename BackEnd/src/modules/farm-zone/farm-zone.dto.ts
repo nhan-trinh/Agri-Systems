@@ -47,3 +47,8 @@ export const CheckOverlapDto = z.object({
   boundary: GeoJsonPolygonSchema,
   exclude_id: z.string().optional(),
 });
+
+export type GeoJsonPolygonInput = z.infer<typeof GeoJsonPolygonSchema>;
+export type CreateFarmZoneDtoInput = z.infer<typeof CreateFarmZoneDto>;
+export type UpdateFarmZoneDtoInput = z.infer<typeof UpdateFarmZoneDto>;
+export type CheckOverlapDtoInput = z.infer<typeof CheckOverlapDto>;

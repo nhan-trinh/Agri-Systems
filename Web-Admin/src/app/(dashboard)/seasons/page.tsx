@@ -73,6 +73,14 @@ interface FarmingLog {
   created_at: string;
 }
 
+interface WarehouseMaterial {
+  id: string;
+  material_name: string;
+  material_type: 'SEED' | 'FERTILIZER' | 'PESTICIDE' | 'EQUIPMENT' | 'OTHER';
+  unit: string;
+  is_active: boolean;
+}
+
 export default function SeasonsPage() {
   const { user } = useAuthStore();
   const router = useRouter();
@@ -110,10 +118,12 @@ export default function SeasonsPage() {
   });
 
   // Form states - Add Farming Log
+  const [materials, setMaterials] = useState<WarehouseMaterial[]>([]);
   const [logForm, setLogForm] = useState<{
     activity_type: FarmingLog['activity_type'];
     activity_date: string;
     notes: string;
+    material_id: string;
     fertilizer_type: string;
     quantity_kg: string;
     product_name: string;
@@ -127,6 +137,7 @@ export default function SeasonsPage() {
     activity_type: 'SEEDING',
     activity_date: '',
     notes: '',
+    material_id: '',
     fertilizer_type: '',
     quantity_kg: '',
     product_name: '',
@@ -149,6 +160,7 @@ export default function SeasonsPage() {
     }
     fetchSeasons();
     fetchZones();
+    fetchMaterials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -192,6 +204,17 @@ export default function SeasonsPage() {
     }
   };
 
+  const fetchMaterials = async () => {
+    try {
+      const res = await apiClient.get('/warehouse/materials?limit=1000');
+      if (res.data?.success) {
+        setMaterials(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách vật tư:', err);
+    }
+  };
+
   const fetchLogs = async (seasonId: string) => {
     try {
       setLogsLoading(true);
@@ -223,6 +246,7 @@ export default function SeasonsPage() {
       activity_type: 'SEEDING',
       activity_date: '',
       notes: '',
+      material_id: '',
       fertilizer_type: '',
       quantity_kg: '',
       product_name: '',
@@ -371,6 +395,7 @@ export default function SeasonsPage() {
         activity_date: string;
         activity_type: FarmingLog['activity_type'];
         notes: string;
+        material_id?: string;
         fertilizer_type?: string;
         quantity_kg?: number;
         product_name?: string;
@@ -386,6 +411,10 @@ export default function SeasonsPage() {
         activity_type: logForm.activity_type,
         notes: logForm.notes,
       };
+
+      if (logForm.material_id) {
+        payload.material_id = logForm.material_id;
+      }
 
       if (logForm.activity_type === 'FERTILIZING') {
         payload.fertilizer_type = logForm.fertilizer_type;
@@ -1076,33 +1105,87 @@ export default function SeasonsPage() {
                 <h4 className="text-xs font-bold text-stone-600 uppercase tracking-wider">Thông số hoạt động</h4>
                 
                 {logForm.activity_type === 'FERTILIZING' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-stone-500 mb-1">Loại Phân Bón <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="VD: Phân đạm, NPK 16-16-8"
-                        value={logForm.fertilizer_type}
-                        onChange={(e) => setLogForm({ ...logForm, fertilizer_type: e.target.value })}
-                        className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-stone-500 mb-1">Khối lượng (kg) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        placeholder="VD: 50"
-                        value={logForm.quantity_kg}
-                        onChange={(e) => setLogForm({ ...logForm, quantity_kg: e.target.value })}
-                        className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Chọn từ Kho Vật Tư</label>
+                        <select
+                          value={logForm.material_id}
+                          onChange={(e) => {
+                            const matId = e.target.value;
+                            const mat = materials.find((m) => m.id === matId);
+                            setLogForm({
+                              ...logForm,
+                              material_id: matId,
+                              fertilizer_type: mat ? mat.material_name : '',
+                            });
+                          }}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold text-stone-700"
+                        >
+                          <option value="">-- Tự nhập thủ công --</option>
+                          {materials
+                            .filter((m) => m.material_type === 'FERTILIZER' && m.is_active)
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.material_name} ({m.unit})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Loại Phân Bón <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="VD: Phân đạm, NPK 16-16-8"
+                          value={logForm.fertilizer_type}
+                          onChange={(e) => setLogForm({ ...logForm, fertilizer_type: e.target.value })}
+                          disabled={!!logForm.material_id}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold disabled:text-stone-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Khối lượng (kg) <span className="text-red-500">*</span></label>
+                        <input
+                          type="number"
+                          placeholder="VD: 50"
+                          value={logForm.quantity_kg}
+                          onChange={(e) => setLogForm({ ...logForm, quantity_kg: e.target.value })}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {logForm.activity_type === 'PESTICIDE' && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Chọn từ Kho Vật Tư</label>
+                        <select
+                          value={logForm.material_id}
+                          onChange={(e) => {
+                            const matId = e.target.value;
+                            const mat = materials.find((m) => m.id === matId);
+                            setLogForm({
+                              ...logForm,
+                              material_id: matId,
+                              product_name: mat ? mat.material_name : '',
+                              unit: mat ? mat.unit : '',
+                            });
+                          }}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold text-stone-700"
+                        >
+                          <option value="">-- Tự nhập thủ công --</option>
+                          {materials
+                            .filter((m) => m.material_type === 'PESTICIDE' && m.is_active)
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.material_name} ({m.unit})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
                       <div>
                         <label className="block text-[10px] font-bold text-stone-500 mb-1">Tên Thuốc <span className="text-red-500">*</span></label>
                         <input
@@ -1110,30 +1193,30 @@ export default function SeasonsPage() {
                           placeholder="VD: Thuốc trừ sâu A"
                           value={logForm.product_name}
                           onChange={(e) => setLogForm({ ...logForm, product_name: e.target.value })}
+                          disabled={!!logForm.material_id}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold disabled:text-stone-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Liều lượng <span className="text-red-500">*</span></label>
+                        <input
+                          type="number"
+                          placeholder="VD: 250"
+                          value={logForm.dosage}
+                          onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })}
                           className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[10px] font-bold text-stone-500 mb-1">Liều lượng <span className="text-red-500">*</span></label>
-                          <input
-                            type="number"
-                            placeholder="VD: 250"
-                            value={logForm.dosage}
-                            onChange={(e) => setLogForm({ ...logForm, dosage: e.target.value })}
-                            className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-stone-500 mb-1">Đơn vị <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            placeholder="ml, lít"
-                            value={logForm.unit}
-                            onChange={(e) => setLogForm({ ...logForm, unit: e.target.value })}
-                            className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold"
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-1">Đơn vị <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="ml, lít"
+                          value={logForm.unit}
+                          onChange={(e) => setLogForm({ ...logForm, unit: e.target.value })}
+                          disabled={!!logForm.material_id}
+                          className="w-full py-1 bg-transparent border-b border-stone-200 focus:border-[#1b4332] focus:outline-none text-xs font-semibold disabled:text-stone-400"
+                        />
                       </div>
                     </div>
                   </div>

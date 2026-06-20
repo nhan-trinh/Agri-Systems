@@ -58,9 +58,45 @@ function buildJwtPayload(user: User): JwtPayload {
   };
 }
 
+function hashOtp(phone: string, otp: string): string {
+  return crypto
+    .createHmac('sha256', config.jwt.secret)
+    .update(`${phone}:${otp}`)
+    .digest('hex');
+}
+
+function timingSafeEqualString(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+
+  if (left.length !== right.length) return false;
+
+  return crypto.timingSafeEqual(left, right);
+}
+
+function canUsePasswordReset(user: User): boolean {
+  return user.is_active && user.role !== 'FARMER' && Boolean(user.password_hash);
+}
+
 // ==================== Service ====================
 
 export class AuthService {
+  private async revokeUserRefreshTokens(userId: string): Promise<void> {
+    const redis = await getRedisClient();
+    const keys: string[] = [];
+
+    for await (const key of redis.scanIterator({
+      MATCH: `refresh:${userId}:*`,
+      COUNT: 100,
+    })) {
+      keys.push(key as string);
+    }
+
+    if (keys.length > 0) {
+      await redis.del(keys);
+    }
+  }
+
   // ─────────── Token Generation ───────────
 
   /**
@@ -110,6 +146,22 @@ export class AuthService {
 
     // Bước 3: Tìm user theo zalo_id
     let user = await authRepository.findByZaloId(profile.zaloId);
+
+    if (!user && input.phone) {
+      const preCreatedFarmerUser = await authRepository.findByPhone(input.phone);
+      if (
+        preCreatedFarmerUser &&
+        preCreatedFarmerUser.role === 'FARMER' &&
+        !preCreatedFarmerUser.zalo_id
+      ) {
+        user = await authRepository.linkZaloId(
+          preCreatedFarmerUser.id,
+          profile.zaloId,
+          profile.name,
+          profile.avatar
+        );
+      }
+    }
 
     if (!user) {
       // zalo_id chưa có → không tự tạo user mới (BR-001: HTX_MANAGER phải tạo trước)
@@ -295,6 +347,7 @@ export class AuthService {
 
     const newHash = await bcrypt.hash(input.new_password, BCRYPT_SALT_ROUNDS);
     await authRepository.updatePassword(userId, newHash);
+    await this.revokeUserRefreshTokens(userId);
   }
 
   // ─────────── First Login Change Password ───────────
@@ -317,6 +370,7 @@ export class AuthService {
 
     const newHash = await bcrypt.hash(input.new_password, BCRYPT_SALT_ROUNDS);
     await authRepository.updatePassword(userId, newHash);
+    await this.revokeUserRefreshTokens(userId);
   }
 
   // ─────────── Forgot Password (OTP) ───────────
@@ -327,7 +381,7 @@ export class AuthService {
    */
   async forgotPassword(input: ForgotPasswordInput): Promise<{ message: string }> {
     const user = await authRepository.findByPhone(input.phone);
-    if (!user) {
+    if (!user || !canUsePasswordReset(user)) {
       // Không tiết lộ SĐT có tồn tại hay không (bảo mật)
       return { message: 'Nếu số điện thoại tồn tại, OTP sẽ được gửi qua SMS' };
     }
@@ -346,10 +400,11 @@ export class AuthService {
     }
 
     // Sinh OTP 6 chữ số
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = hashOtp(input.phone, otp);
 
     // Lưu vào Redis
-    await redis.set(`otp:${input.phone}`, otp, { EX: OTP_TTL_SECONDS });
+    await redis.set(`otp:${input.phone}`, otpHash, { EX: OTP_TTL_SECONDS });
 
     // TODO: Gọi SMS provider để gửi OTP thật (Twilio, Viettel SMS Gateway, v.v.)
     console.log(`[DEV] OTP cho ${input.phone}: ${otp}`);
@@ -384,7 +439,8 @@ export class AuthService {
       throw new AppError('OTP_EXPIRED', 422, 'OTP đã hết hạn hoặc chưa được yêu cầu');
     }
 
-    if (storedOtp !== input.otp) {
+    const inputOtpHash = hashOtp(input.phone, input.otp);
+    if (!timingSafeEqualString(storedOtp, inputOtpHash)) {
       // Tăng đếm số lần sai
       const newCount = attemptCount ? parseInt(attemptCount) + 1 : 1;
       await redis.set(lockKey, newCount.toString(), { EX: OTP_LOCK_TTL_SECONDS });
@@ -408,12 +464,13 @@ export class AuthService {
 
     // Tìm user và cập nhật mật khẩu
     const user = await authRepository.findByPhone(input.phone);
-    if (!user) {
-      throw new AppError('USER_NOT_FOUND', 404, 'Không tìm thấy tài khoản');
+    if (!user || !canUsePasswordReset(user)) {
+      throw new AppError('FORBIDDEN', 403, 'Tài khoản không hỗ trợ đặt lại mật khẩu');
     }
 
     const newHash = await bcrypt.hash(input.new_password, BCRYPT_SALT_ROUNDS);
     await authRepository.updatePassword(user.id, newHash);
+    await this.revokeUserRefreshTokens(user.id);
   }
 }
 

@@ -32,7 +32,7 @@ router.post('/reset-password', validateBody(ResetPasswordDto), authController.re
 // ─────────── Authenticated Routes ───────────
 
 // Logout (cần token để biết user nào)
-router.post('/logout', requireAuth, authController.logout);
+router.post('/logout', requireAuth, validateBody(RefreshDto), authController.logout);
 
 // Lấy thông tin user hiện tại
 router.get('/me', requireAuth, authController.getMe);

@@ -1,5 +1,5 @@
 import prisma from '../../prisma/client';
-import { SeasonStatus } from '@prisma/client';
+import { SeasonStatus, Prisma, Season } from '@prisma/client';
 
 export interface CreateSeasonInput {
   farm_zone_id: string;
@@ -22,60 +22,46 @@ export interface UpdateSeasonInput {
   status?: SeasonStatus;
 }
 
-export class SeasonRepository {
-  public async create(data: CreateSeasonInput): Promise<any> {
-    return prisma.season.create({
-      data,
-      include: {
-        farm_zone: {
-          include: {
-            farmer: {
-              include: {
-                cooperative: true,
-              },
-            },
-          },
+const seasonWithZoneAndFarmer = {
+  farm_zone: {
+    include: {
+      farmer: {
+        include: {
+          cooperative: true,
         },
       },
+    },
+  },
+} satisfies Prisma.SeasonInclude;
+
+export type SeasonWithZoneAndFarmer = Prisma.SeasonGetPayload<{
+  include: typeof seasonWithZoneAndFarmer;
+}>;
+
+export class SeasonRepository {
+  public async create(data: CreateSeasonInput): Promise<SeasonWithZoneAndFarmer> {
+    return prisma.season.create({
+      data,
+      include: seasonWithZoneAndFarmer,
     });
   }
 
-  public async update(id: string, data: UpdateSeasonInput): Promise<any> {
+  public async update(id: string, data: UpdateSeasonInput): Promise<SeasonWithZoneAndFarmer> {
     return prisma.season.update({
       where: { id },
       data,
-      include: {
-        farm_zone: {
-          include: {
-            farmer: {
-              include: {
-                cooperative: true,
-              },
-            },
-          },
-        },
-      },
+      include: seasonWithZoneAndFarmer,
     });
   }
 
-  public async findById(id: string): Promise<any | null> {
+  public async findById(id: string): Promise<SeasonWithZoneAndFarmer | null> {
     return prisma.season.findUnique({
       where: { id },
-      include: {
-        farm_zone: {
-          include: {
-            farmer: {
-              include: {
-                cooperative: true,
-              },
-            },
-          },
-        },
-      },
+      include: seasonWithZoneAndFarmer,
     });
   }
 
-  public async findActiveByZoneId(farmZoneId: string): Promise<any | null> {
+  public async findActiveByZoneId(farmZoneId: string): Promise<Season | null> {
     return prisma.season.findFirst({
       where: {
         farm_zone_id: farmZoneId,
@@ -84,8 +70,8 @@ export class SeasonRepository {
     });
   }
 
-  public async findAll(filters: { cooperativeId?: string; farmZoneId?: string; status?: SeasonStatus }): Promise<any[]> {
-    const where: any = {};
+  public async findAll(filters: { cooperativeId?: string; farmZoneId?: string; status?: SeasonStatus }): Promise<SeasonWithZoneAndFarmer[]> {
+    const where: Prisma.SeasonWhereInput = {};
 
     if (filters.farmZoneId) {
       where.farm_zone_id = filters.farmZoneId;
@@ -105,17 +91,7 @@ export class SeasonRepository {
 
     return prisma.season.findMany({
       where,
-      include: {
-        farm_zone: {
-          include: {
-            farmer: {
-              include: {
-                cooperative: true,
-              },
-            },
-          },
-        },
-      },
+      include: seasonWithZoneAndFarmer,
       orderBy: {
         created_at: 'desc',
       },
