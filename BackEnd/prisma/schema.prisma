@@ -23,6 +23,8 @@ model Cooperative {
   farmers      Farmer[]
   users        User[]
   materials    Material[]
+  harvest_stock_items   HarvestStockItem[]
+  harvest_stock_entries HarvestStockEntry[]
 }
 
 // ==================== USER & AUTH ====================
@@ -75,6 +77,7 @@ model Farmer {
   created_at     DateTime    @default(now())
   updated_at     DateTime    @updatedAt
   farm_zones     FarmZone[]
+  harvest_stock_entries HarvestStockEntry[]
 
   @@index([cooperative_id])
 }
@@ -127,6 +130,7 @@ model Season {
   farming_logs      FarmingLog[]
   batch             Batch?
   carbon_record     CarbonRecord?
+  harvest_stock_entries HarvestStockEntry[]
 }
 
 enum SeasonStatus {
@@ -350,6 +354,67 @@ enum TransactionType {
   IMPORT
   EXPORT
   RETURN
+}
+
+// ==================== HARVEST WAREHOUSE ====================
+// Kho nông sản — tracks produce flowing OUT of the field into cooperative storage,
+// then shipped to buyers. Structurally parallel to the Material Warehouse module
+// (StockItem + Transaction history) but a separate domain (FR/UC per spec).
+
+model HarvestStockItem {
+  id              String      @id @default(cuid())
+  cooperative_id  String
+  cooperative     Cooperative @relation(fields: [cooperative_id], references: [id])
+  crop_type       CropType
+  produce_name    String      // display name as entered, e.g. "Lúa ST25"
+  produce_name_key String     // normalized key for uniqueness: trimmed, lowercased, whitespace-collapsed
+  unit            String      // "kg", "tấn"
+  current_stock   Float       @default(0)
+  updated_at      DateTime    @updatedAt
+  entries         HarvestStockEntry[]
+
+  @@unique([cooperative_id, crop_type, produce_name_key])
+  @@index([cooperative_id])
+}
+
+model HarvestStockEntry {
+  id                    String           @id @default(cuid())
+  cooperative_id        String
+  cooperative           Cooperative      @relation(fields: [cooperative_id], references: [id])
+  harvest_stock_item_id String
+  harvest_stock_item    HarvestStockItem @relation(fields: [harvest_stock_item_id], references: [id])
+
+  entry_type            HarvestEntryType // RECEIVE | SHIP
+  quantity              Float            // always positive; type determines +/- stock effect
+  unit                  String
+
+  // RECEIVE-specific (nullable when entry_type = SHIP)
+  season_id             String?
+  season                Season?          @relation(fields: [season_id], references: [id])
+  farmer_id             String?
+  farmer                Farmer?          @relation(fields: [farmer_id], references: [id])
+  quality_notes         String?
+  received_after_close  Boolean          @default(false) // FR-12 flag (UC-06)
+
+  // SHIP-specific (nullable when entry_type = RECEIVE)
+  buyer_name            String?
+  buyer_contact         String?
+  unit_price            Float?
+
+  entry_date            DateTime
+  notes                 String?
+  created_by            String           // userId
+  // No updated_at — immutable once created (mirrors WarehouseTransaction BR-005-5)
+  created_at            DateTime         @default(now())
+
+  @@index([harvest_stock_item_id, entry_type])
+  @@index([season_id])
+  @@index([cooperative_id, entry_date])
+}
+
+enum HarvestEntryType {
+  RECEIVE
+  SHIP
 }
 
 // ==================== NOTIFICATIONS ====================

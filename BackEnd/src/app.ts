@@ -67,6 +67,7 @@ import ocrRouter from './modules/ocr/ocr.router';
 import cooperativeRouter from './modules/cooperative/cooperative.router';
 import seasonRouter from './modules/season/season.router';
 import dashboardRouter from './modules/dashboard/dashboard.router';
+import harvestWarehouseRouter from './modules/harvest-warehouse/harvest-warehouse.router';
 import { checkvnQrController } from './modules/checkvn-qr/checkvn-qr.controller';
 
 // Start BullMQ background workers (except in test mode)
@@ -85,6 +86,7 @@ apiRouter.use('/farmers', farmerRouter);
 apiRouter.use('/farm-zones', farmZoneRouter);
 apiRouter.use('/farming-logs', farmingLogRouter);
 apiRouter.use('/warehouse', warehouseRouter);
+apiRouter.use('/harvest-warehouse', harvestWarehouseRouter);
 apiRouter.use('/qr', checkvnQrRouter);
 apiRouter.use('/carbon', carbonRouter);
 apiRouter.use('/reports', reportingRouter);
