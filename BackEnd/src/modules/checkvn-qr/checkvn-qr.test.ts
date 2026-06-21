@@ -1,6 +1,7 @@
 import { checkvnQrService } from './checkvn-qr.service';
 import { checkvnQrRepository } from './checkvn-qr.repository';
 import { seasonRepository } from '../season/season.repository';
+import { harvestWarehouseService } from '../harvest-warehouse/harvest-warehouse.service';
 import prisma from '../../prisma/client';
 import { AppError } from '../../shared/utils/app-error';
 import { BatchStatus, QrStatus } from '@prisma/client';
@@ -32,10 +33,19 @@ jest.mock('../../shared/utils/redis.client', () => ({
 // Mock repositories
 jest.mock('./checkvn-qr.repository');
 jest.mock('../season/season.repository');
+// FR-09 gate: harvest warehouse stock check is unit-tested in its own suite; here it's
+// stubbed to pass by default so createBatch tests focus on QR-batch logic.
+jest.mock('../harvest-warehouse/harvest-warehouse.service', () => ({
+  __esModule: true,
+  harvestWarehouseService: {
+    assertSeasonHasReceivedStock: jest.fn().mockResolvedValue(undefined),
+  },
+}));
 jest.mock('axios');
 
 const mockCheckvnQrRepo = checkvnQrRepository as jest.Mocked<typeof checkvnQrRepository>;
 const mockSeasonRepo = seasonRepository as jest.Mocked<typeof seasonRepository>;
+const mockHarvestWarehouseService = harvestWarehouseService as jest.Mocked<typeof harvestWarehouseService>;
 const mockAxios = axios as jest.Mocked<typeof axios>;
 
 describe('CheckvnQr Service Tests', () => {
@@ -160,6 +170,30 @@ describe('CheckvnQr Service Tests', () => {
 
       await expect(checkvnQrService.createBatch(data, mockUser)).rejects.toThrow(
         'Khối lượng lô hàng vượt quá sản lượng thu hoạch thực tế'
+      );
+    });
+
+    it('FR-09: blocks batch creation when the season has no received harvest stock', async () => {
+      mockSeasonRepo.findById.mockResolvedValue(mockSeason);
+      // Make the harvest-warehouse gate throw (season has zero received produce)
+      mockHarvestWarehouseService.assertSeasonHasReceivedStock.mockRejectedValueOnce(
+        new AppError('SEASON_HAS_NO_HARVEST_STOCK', 422, 'chưa có nông sản nhận vào kho'),
+      );
+
+      const data = {
+        season_id: 'season-001',
+        batch_name: 'Gạo ST25',
+        total_weight_kg: 4000,
+        quantity_qr: 10,
+        packaging_unit: 'Túi 5kg',
+      };
+
+      await expect(checkvnQrService.createBatch(data, mockUser)).rejects.toThrow(
+        'chưa có nông sản nhận vào kho'
+      );
+      // Confirms the gate is actually invoked, not just defined.
+      expect(mockHarvestWarehouseService.assertSeasonHasReceivedStock).toHaveBeenCalledWith(
+        'season-001', 'coop-001',
       );
     });
 

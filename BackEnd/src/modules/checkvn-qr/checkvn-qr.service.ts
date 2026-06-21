@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { checkvnQrRepository } from './checkvn-qr.repository';
 import { seasonRepository } from '../season/season.repository';
+import { harvestWarehouseService } from '../harvest-warehouse/harvest-warehouse.service';
 import { AppError } from '../../shared/utils/app-error';
 import { getRedisClient } from '../../shared/utils/redis.client';
 import config from '../../config/app.config';
@@ -39,7 +40,12 @@ export class CheckvnQrService {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền tạo lô hàng cho vụ mùa này');
     }
 
-    // 5. BR-004-4: Tự động sinh batch_code: ZONE_CODE-YYYYMMDD-NNN
+    // 5. FR-09: Vụ mùa phải có ít nhất một lần nông sản được xác nhận nhập vào kho
+    //    (Harvest Warehouse) trước khi được phép tạo lô hàng QR — tránh cấp QR cho
+    //    sản phẩm chưa từng được nhận vào kho.
+    await harvestWarehouseService.assertSeasonHasReceivedStock(data.season_id, cooperativeId);
+
+    // 6. BR-004-4: Tự động sinh batch_code: ZONE_CODE-YYYYMMDD-NNN
     const farmZoneCode = season.farm_zone.farm_zone_code;
     const today = new Date();
     const yyyy = today.getFullYear();
