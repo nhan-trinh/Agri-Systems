@@ -8,6 +8,7 @@ import {
   Building2, 
   Leaf, 
   Users, 
+  UserCog, 
   Map, 
   Calendar, 
   QrCode, 
@@ -37,6 +38,12 @@ export function Sidebar() {
       href: '/cooperatives',
       icon: Building2,
       roles: ['SUPER_ADMIN'],
+    },
+    {
+      title: 'Quản lý tài khoản',
+      href: '/users',
+      icon: UserCog,
+      roles: ['SUPER_ADMIN', 'HTX_MANAGER'],
     },
     {
       title: 'Hệ số phát thải',

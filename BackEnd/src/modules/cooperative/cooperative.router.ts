@@ -11,10 +11,12 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole(UserRole.SUPER_ADMIN));
 
-router.get('/', cooperativeController.getAll);
-router.get('/:id', cooperativeController.getById);
-router.post('/', validateBody(CreateCooperativeDto), cooperativeController.create);
-router.put('/:id', validateBody(UpdateCooperativeDto), cooperativeController.update);
-router.delete('/:id', cooperativeController.delete);
+// List query is parsed/validated inside the controller (ListCooperativeQueryDto).
+router.get('/',            cooperativeController.list);
+router.get('/:id',         cooperativeController.getById);
+router.post('/',           validateBody(CreateCooperativeDto), cooperativeController.create);
+router.put('/:id',         validateBody(UpdateCooperativeDto), cooperativeController.update);
+router.patch('/:id/status', cooperativeController.toggleStatus);
+router.delete('/:id',      cooperativeController.delete);
 
 export default router;
