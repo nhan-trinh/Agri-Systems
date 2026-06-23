@@ -1,3 +1,4 @@
+import path from 'path';
 import { Worker, Job } from 'bullmq';
 import { ExportStatus } from '@prisma/client';
 import PDFDocument from 'pdfkit';
@@ -6,6 +7,11 @@ import { carbonRepository } from '../modules/carbon/carbon.repository';
 import { CarbonCertificateJobPayload } from '../shared/queues/queue.types';
 import StorageFactory from '../shared/storage/storage.factory';
 import { CERTIFICATE_EXPIRY_YEARS } from '../modules/carbon/carbon.constants';
+
+// ── Font paths (Noto Sans — full Vietnamese Unicode support) ──────────
+const FONTS_DIR = path.resolve(__dirname, '../../fonts');
+const FONT_REGULAR = path.join(FONTS_DIR, 'NotoSans-Regular.ttf');
+const FONT_BOLD    = path.join(FONTS_DIR, 'NotoSans-Bold.ttf');
 
 export class CarbonCertificateWorker {
   private worker: Worker;
@@ -72,6 +78,14 @@ export class CarbonCertificateWorker {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', (err: Error) => reject(err));
 
+        // Register Vietnamese-compatible font (Noto Sans) — Helvetica lacks
+        // Vietnamese diacritics (đ, ồ, ệ, ư, …).
+        doc.registerFont('NotoSans', FONT_REGULAR);
+        doc.registerFont('NotoSans-Bold', FONT_BOLD);
+
+        // Set NotoSans as the default font for all subsequent text.
+        doc.font('NotoSans');
+
         const width = doc.page.width;
         const height = doc.page.height;
 
@@ -81,9 +95,10 @@ export class CarbonCertificateWorker {
 
         // Title header
         doc.moveDown(2);
-        doc.fontSize(24).fillColor('#1b5e20').text('🌱 AGRITRACE CARBON', { align: 'center' });
+        doc.font('NotoSans-Bold').fontSize(24).fillColor('#1b5e20').text('🌱 AGRITRACE CARBON', { align: 'center' });
         doc.moveDown(0.2);
         doc.fontSize(16).fillColor('#2e7d32').text('CHỨNG NHẬN TÍN CHỈ CARBON', { align: 'center' });
+        doc.font('NotoSans'); // reset to regular
         doc.moveDown(0.8);
 
         const certNo = record.certificate_no || 'CARBON-MOCK-000000';
@@ -126,7 +141,7 @@ export class CarbonCertificateWorker {
         const expiryDate = expDateObj.toLocaleDateString('vi-VN');
 
         doc.fontSize(14).fillColor('#1b5e20').text(`Lượng tín chỉ: ${credits} tCO2e`, { lineGap: 6 });
-        doc.fontSize(11).fillColor('#424242').text(`Ngày cấp:     ${issuedDate}`, { lineGap: 4 });
+        doc.font('NotoSans').fontSize(11).fillColor('#424242').text(`Ngày cấp:     ${issuedDate}`, { lineGap: 4 });
         doc.text(`Hiệu lực:     ${expiryDate}`, { lineGap: 4 });
 
         doc.moveDown(1.5);
@@ -140,8 +155,8 @@ export class CarbonCertificateWorker {
         );
 
         doc.moveDown(2.5);
-        doc.fontSize(12).fillColor('#1b5e20').text('AgriTrace Carbon — TakaTech', { align: 'center' });
-        doc.fontSize(8).fillColor('#9e9e9e').text('Được cấp bởi hệ thống AgriTrace Carbon', { align: 'center' });
+        doc.font('NotoSans-Bold').fontSize(12).fillColor('#1b5e20').text('AgriTrace Carbon — TakaTech', { align: 'center' });
+        doc.font('NotoSans').fontSize(8).fillColor('#9e9e9e').text('Được cấp bởi hệ thống AgriTrace Carbon', { align: 'center' });
 
         doc.end();
       } catch (err) {

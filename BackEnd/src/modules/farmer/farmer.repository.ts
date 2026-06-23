@@ -107,6 +107,7 @@ export class FarmerRepository {
           role: UserRole.FARMER,
           cooperative_id: farmer.cooperative_id,
           farmer_id: farmer.id,
+          display_name: farmer.full_name, // P0 fix: mirror Farmer.full_name so FARMER users have a display name
           is_first_login: false,
           is_active: farmer.is_active,
         },

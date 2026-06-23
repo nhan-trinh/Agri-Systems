@@ -55,6 +55,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Import module routers
 import authRouter from './modules/auth/auth.router';
+import userRouter from './modules/user/user.router';
 import farmerRouter from './modules/farmer/farmer.router';
 import farmZoneRouter from './modules/farm-zone/farm-zone.router';
 import farmingLogRouter from './modules/farming-log/farming-log.router';
@@ -82,6 +83,7 @@ const apiRouter = express.Router();
 
 // Mount module routers conforming to API conventions
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/users', userRouter);
 apiRouter.use('/farmers', farmerRouter);
 apiRouter.use('/farm-zones', farmZoneRouter);
 apiRouter.use('/farming-logs', farmingLogRouter);

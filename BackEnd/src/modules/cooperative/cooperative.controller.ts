@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { cooperativeService } from './cooperative.service';
 import responseHelper from '../../shared/utils/response.helper';
+import { ListCooperativeQueryDto } from './cooperative.dto';
 
 export class CooperativeController {
-  public getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const coops = await cooperativeService.getAllCooperatives();
-      responseHelper.success(res, coops);
+      const query = ListCooperativeQueryDto.parse(req.query);
+      const result = await cooperativeService.listCooperatives(query);
+      responseHelper.paginate(res, result.data, result.meta);
     } catch (error) {
       next(error);
     }
@@ -33,6 +35,15 @@ export class CooperativeController {
   public update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const coop = await cooperativeService.updateCooperative(req.params.id, req.body);
+      responseHelper.success(res, coop);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public toggleStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const coop = await cooperativeService.toggleStatus(req.params.id);
       responseHelper.success(res, coop);
     } catch (error) {
       next(error);

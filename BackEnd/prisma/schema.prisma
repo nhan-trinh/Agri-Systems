@@ -19,12 +19,16 @@ model Cooperative {
   address      String
   phone        String?
   is_active    Boolean    @default(true)
+  deleted_at   DateTime?  // soft delete timestamp (BR: soft-delete convention)
   created_at   DateTime   @default(now())
+  updated_at   DateTime   @default(now()) @updatedAt
   farmers      Farmer[]
   users        User[]
   materials    Material[]
   harvest_stock_items   HarvestStockItem[]
   harvest_stock_entries HarvestStockEntry[]
+
+  @@index([is_active])
 }
 
 // ==================== USER & AUTH ====================
@@ -43,6 +47,10 @@ model User {
   zalo_name      String?
   avatar_url     String?
 
+  // Display name for phone/password-authenticated users (HTX_MANAGER, etc.).
+  // Zalo users use zalo_name; Farmer-linked users mirror Farmer.full_name.
+  display_name   String?
+
   // First login flag — web admin must change password on first login
   is_first_login Boolean     @default(true)
 
@@ -50,6 +58,9 @@ model User {
   last_login_at  DateTime?
   created_at     DateTime    @default(now())
   updated_at     DateTime    @updatedAt
+
+  @@index([cooperative_id, role])
+  @@index([role, is_active])
 }
 
 enum UserRole {
