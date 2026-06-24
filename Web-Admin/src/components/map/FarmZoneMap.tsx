@@ -6,12 +6,39 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Sprout, Navigation, Loader2 } from 'lucide-react';
 
-// Helper component to programmatically pan/re-center Leaflet Map
-function RecenterMap({ center, zoom }: { center: [number, number]; zoom: number }) {
+// Helper component to programmatically pan/re-center Leaflet Map.
+// `panOnly=true` means recenter WITHOUT changing the user's current zoom level —
+// critical while drawing so adding a point doesn't snap the zoom back (bug fix #2).
+function RecenterMap({ center, zoom, panOnly }: { center: [number, number]; zoom: number; panOnly?: boolean }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
+    if (panOnly) {
+      // Keep the user's zoom; just pan to the new center.
+      map.panTo(center, { animate: true });
+    } else {
+      map.setView(center, zoom);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center]);
+  return null;
+}
+
+/**
+ * Fit the map to a set of points exactly once (when `fitKey` changes).
+ * Used when the Edit modal opens with pre-populated boundary points so the user
+ * immediately sees their polygon framed correctly — instead of the default location.
+ * Fires only on mount/key change, so subsequent edits/dragging never re-fit (bug fix #2 preserved).
+ */
+function FitBoundsOnMount({ points, fitKey }: { points: [number, number][]; fitKey: string | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length >= 2) {
+      const bounds = L.latLngBounds(points);
+      // maxZoom caps auto-zoom so small polygons don't zoom in absurdly close.
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
   return null;
 }
 
@@ -69,6 +96,13 @@ interface FarmZoneMapProps {
   onDrawingPointsChange?: (points: [number, number][]) => void;
   center?: [number, number];
   zoom?: number;
+  /**
+   * When set, the map fits its bounds to the current `drawingPoints` exactly once
+   * (every time this key changes). Used when the Edit modal opens with a pre-populated
+   * boundary so the user immediately sees their polygon framed correctly, instead of
+   * the default location. Pass the editing zone's id (or a fresh token on each open).
+   */
+  initialFitKey?: string | null;
 }
 
 export function FarmZoneMap({
@@ -79,27 +113,59 @@ export function FarmZoneMap({
   onDrawingPointsChange,
   center = [12.6784, 108.2022], // Default to Central Highlands (Buôn Ma Thuột)
   zoom = 13,
+  initialFitKey = null,
 }: FarmZoneMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>(center);
   const [mapZoom, setMapZoom] = useState<number>(zoom);
+  // Whether the map should pan without overriding the user's zoom. While drawing we
+  // only pan (never setView), so adding points does NOT snap the zoom back (bug fix #2).
+  const [panOnly, setPanOnly] = useState(false);
+  // Track the previous point count so we only auto-pan on the FIRST drawn point —
+  // subsequent points leave the user's viewport (and zoom) alone.
+  const [drawingViewEstablished, setDrawingViewEstablished] = useState(false);
 
-  // Auto-center map based on selected zone or drawn points
+  // When opening the Edit modal with a pre-populated boundary, mark the view as
+  // established so the "first-point" auto-pan logic doesn't fight the fit-bounds.
+  // FitBoundsOnMount (rendered below) performs the actual bounds fit on this key change.
+  useEffect(() => {
+    if (isDrawing && initialFitKey && drawingPoints.length >= 2) {
+      setDrawingViewEstablished(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFitKey]);
+
+  // Auto-center map based on selected zone (display mode) — full setView (zoom + center).
+  // NOTE: drawing mode intentionally does NOT live here. It is handled separately below
+  // so that placing a point never resets the zoom.
   useEffect(() => {
     if (selectedZoneId) {
       const zone = zones.find((z) => z.id === selectedZoneId);
       if (zone && zone.boundary && zone.boundary.coordinates) {
         const coords = zone.boundary.coordinates[0];
         if (coords.length > 0) {
-          // Centering to the first coordinate and zoom in close
           setMapCenter([coords[0][1], coords[0][0]]);
           setMapZoom(17);
+          setPanOnly(false);
         }
       }
-    } else if (isDrawing && drawingPoints.length > 0) {
-      setMapCenter(drawingPoints[drawingPoints.length - 1]);
-      setMapZoom(17);
     }
-  }, [selectedZoneId, zones, isDrawing, drawingPoints]);
+  }, [selectedZoneId, zones]);
+
+  // Drawing mode: when the FIRST point is placed, establish the view once.
+  // After that, adding/removing/moving points must NOT change the user's zoom or
+  // pan — they are free to zoom in fully to place precise points (bug fix #2).
+  useEffect(() => {
+    if (!isDrawing) {
+      setDrawingViewEstablished(false);
+      return;
+    }
+    // First point establishes the view (zoom stays at the map default — user zooms from there).
+    if (drawingPoints.length === 1 && !drawingViewEstablished) {
+      setMapCenter(drawingPoints[0]);
+      setPanOnly(true); // even the first recenter keeps the current zoom
+      setDrawingViewEstablished(true);
+    }
+  }, [isDrawing, drawingPoints, drawingViewEstablished]);
 
   const [locating, setLocating] = useState(false);
 
@@ -116,6 +182,7 @@ export function FarmZoneMap({
         const { latitude, longitude } = position.coords;
         setMapCenter([latitude, longitude]);
         setMapZoom(17); // Zoom close to user GPS location
+        setPanOnly(false); // full setView: recenter + zoom
         setLocating(false);
       },
       (error) => {
@@ -189,15 +256,19 @@ export function FarmZoneMap({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[400px] bg-stone-100 rounded-2xl overflow-hidden border border-[#e6ebe3]">
+    <div className="relative w-full h-full min-h-[500px] bg-stone-100 rounded-2xl overflow-hidden border border-[#e6ebe3]">
       <MapContainer
         center={mapCenter}
         zoom={zoom}
-        style={{ width: '100%', height: '100%', minHeight: '400px' }}
+        style={{ width: '100%', height: '100%', minHeight: '500px' }}
         scrollWheelZoom={true}
         className="z-10"
       >
-        <RecenterMap center={mapCenter} zoom={mapZoom} />
+        <RecenterMap center={mapCenter} zoom={mapZoom} panOnly={panOnly} />
+        {/* Edit modal: fit to the pre-populated boundary once on open (initialFitKey change). */}
+        {isDrawing && initialFitKey && (
+          <FitBoundsOnMount points={drawingPoints} fitKey={initialFitKey} />
+        )}
         <LayersControl position="topright">
           <LayersControl.BaseLayer name="Bản đồ đường đi">
             <TileLayer

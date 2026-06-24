@@ -4,9 +4,56 @@ import { AppError } from '../../shared/utils/app-error';
 import { SeasonStatus, UserRole } from '@prisma/client';
 import { JwtPayload } from '../auth/auth.types';
 import { carbonCalculationQueue } from '../../shared/queues/carbon.queue';
+import { getRedisClient } from '../../shared/utils/redis.client';
+
+// ==================== CONSTANTS ====================
+
+const SEASON_LIST_TTL_SECONDS = 300;     // 5 minutes
+const SEASON_DETAIL_TTL_SECONDS = 600;   // 10 minutes
+
+// ==================== SERVICE ====================
 
 export class SeasonService {
+
+  // ==================== CACHE HELPERS ====================
+
+  private async invalidateCache(seasonId?: string, cooperativeId?: string): Promise<void> {
+    try {
+      const redis = await getRedisClient();
+      await redis.del('seasons:list:all');
+      if (cooperativeId) {
+        await redis.del(`seasons:list:coop:${cooperativeId}`);
+      }
+      if (seasonId) {
+        await redis.del(`seasons:detail:${seasonId}`);
+      }
+    } catch (error) {
+      console.error('[Redis Error] Failed to invalidate season cache:', error);
+    }
+  }
+
+  private getListCacheKey(user: JwtPayload): string {
+    if (user.role === UserRole.SUPER_ADMIN) return 'seasons:list:all';
+    return `seasons:list:coop:${user.cooperativeId}`;
+  }
+
+  // ==================== QUERIES ====================
+
   public async getSeasons(user: JwtPayload, farmZoneId?: string, status?: SeasonStatus): Promise<SeasonWithZoneAndFarmer[]> {
+    const canUseCache = !farmZoneId && !status;
+
+    // Only use cache for unfiltered list queries
+    if (canUseCache) {
+      try {
+        const redis = await getRedisClient();
+        const cacheKey = this.getListCacheKey(user);
+        const cached = await redis.get(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch (error) {
+        console.error('[Redis Error] Failed to get season list cache:', error);
+      }
+    }
+
     const filters: { cooperativeId?: string; farmZoneId?: string; status?: SeasonStatus } = {
       farmZoneId,
       status,
@@ -16,10 +63,40 @@ export class SeasonService {
       filters.cooperativeId = user.cooperativeId || undefined;
     }
 
-    return seasonRepository.findAll(filters);
+    const seasons = await seasonRepository.findAll(filters);
+
+    // Cache only unfiltered queries
+    if (canUseCache) {
+      try {
+        const redis = await getRedisClient();
+        const cacheKey = this.getListCacheKey(user);
+        await redis.set(cacheKey, JSON.stringify(seasons), { EX: SEASON_LIST_TTL_SECONDS });
+      } catch (error) {
+        console.error('[Redis Error] Failed to set season list cache:', error);
+      }
+    }
+
+    return seasons;
   }
 
   public async getSeasonById(id: string, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
+    // Try cache first
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(`seasons:detail:${id}`);
+      if (cached) {
+        const season = JSON.parse(cached) as SeasonWithZoneAndFarmer;
+        // Still enforce RBAC on cached data
+        if (user.role === UserRole.HTX_MANAGER && season.farm_zone.farmer.cooperative_id !== user.cooperativeId) {
+          throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập vụ mùa này');
+        }
+        return season;
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      console.error('[Redis Error] Failed to get season detail cache:', error);
+    }
+
     const season = await seasonRepository.findById(id);
     if (!season) {
       throw new AppError('SEASON_NOT_FOUND', 404, 'Không tìm thấy vụ mùa');
@@ -30,8 +107,18 @@ export class SeasonService {
       throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập vụ mùa này');
     }
 
+    // Store in cache
+    try {
+      const redis = await getRedisClient();
+      await redis.set(`seasons:detail:${id}`, JSON.stringify(season), { EX: SEASON_DETAIL_TTL_SECONDS });
+    } catch (error) {
+      console.error('[Redis Error] Failed to set season detail cache:', error);
+    }
+
     return season;
   }
+
+  // ==================== MUTATIONS ====================
 
   public async createSeason(data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
     const { farm_zone_id, season_name, crop_variety, start_date, expected_end_date, planned_yield_kg } = data as {
@@ -74,7 +161,12 @@ export class SeasonService {
       created_by: user.userId || 'SYSTEM',
     };
 
-    return seasonRepository.create(input);
+    const season = await seasonRepository.create(input);
+
+    // Invalidate list caches (new record, no detail key yet)
+    await this.invalidateCache(undefined, zone.farmer.cooperative_id);
+
+    return season;
   }
 
   public async updateSeason(id: string, data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
@@ -102,7 +194,12 @@ export class SeasonService {
       updatePayload.planned_yield_kg = data.planned_yield_kg as number;
     }
 
-    return seasonRepository.update(id, updatePayload);
+    const updated = await seasonRepository.update(id, updatePayload);
+
+    // Invalidate caches
+    await this.invalidateCache(id, season.farm_zone.farmer.cooperative_id);
+
+    return updated;
   }
 
   public async completeSeason(id: string, data: Record<string, unknown>, user: JwtPayload): Promise<SeasonWithZoneAndFarmer> {
@@ -123,6 +220,9 @@ export class SeasonService {
     // Trigger asynchronous carbon calculations in background worker
     await carbonCalculationQueue.add('calculate', { seasonId: id });
 
+    // Invalidate caches
+    await this.invalidateCache(id, season.farm_zone.farmer.cooperative_id);
+
     return updated;
   }
 
@@ -137,7 +237,12 @@ export class SeasonService {
       status: SeasonStatus.CANCELLED,
     };
 
-    return seasonRepository.update(id, updatePayload);
+    const updated = await seasonRepository.update(id, updatePayload);
+
+    // Invalidate caches
+    await this.invalidateCache(id, season.farm_zone.farmer.cooperative_id);
+
+    return updated;
   }
 }
 

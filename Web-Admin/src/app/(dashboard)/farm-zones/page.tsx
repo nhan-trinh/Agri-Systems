@@ -175,6 +175,7 @@ export default function FarmZonesPage() {
   };
 
   const openCreateModal = () => {
+    setSelectedZoneId(null); // clear any focused row so the display map isn't locked underneath the modal
     setEditingZone(null);
     setFormData({
       zone_name: '',
@@ -189,6 +190,7 @@ export default function FarmZonesPage() {
   };
 
   const openEditModal = (zone: Zone) => {
+    setSelectedZoneId(null); // clear any focused row so the display map isn't locked underneath the modal
     setEditingZone(zone);
     setFormData({
       zone_name: zone.zone_name,
@@ -347,9 +349,10 @@ export default function FarmZonesPage() {
             {selectedZoneId && (
               <button
                 onClick={() => setSelectedZoneId(null)}
-                className="text-[#1b4332] hover:underline"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1b4332] text-white hover:bg-[#143225] transition-all text-[11px] font-bold shadow-sm"
               >
-                Hủy chọn
+                <X className="h-3.5 w-3.5" />
+                Thoát xem
               </button>
             )}
           </div>
@@ -415,7 +418,9 @@ export default function FarmZonesPage() {
                     {filteredZones.map((zone) => (
                       <tr
                         key={zone.id}
-                        onClick={() => setSelectedZoneId(zone.id)}
+                        // Toggle off when re-clicking the already-selected row, so the
+                        // user is never "locked" into a focused zone view (bug fix #3).
+                        onClick={() => setSelectedZoneId(prev => prev === zone.id ? null : zone.id)}
                         className={`cursor-pointer transition-all duration-200 ${
                           selectedZoneId === zone.id ? 'bg-[#f4f7f3] font-semibold' : 'hover:bg-[#f5f8f4]'
                         }`}
@@ -626,12 +631,16 @@ export default function FarmZonesPage() {
               </form>
 
               {/* Right Column: Live Map Drawer */}
-              <div className="h-[300px] lg:h-auto min-h-[350px] relative rounded-2xl overflow-hidden shadow-inner border border-[#e6ebe3]">
+              <div className="h-[500px] lg:h-auto lg:min-h-[500px] relative rounded-2xl overflow-hidden shadow-inner border border-[#e6ebe3]">
                 <FarmZoneMap
                   isDrawing={true}
                   drawingPoints={drawingPoints}
                   onDrawingPointsChange={setDrawingPoints}
                   zoom={14}
+                  // On edit, pass the zone id so the map fits bounds to the existing
+                  // boundary once on open (the user sees their planting area, not the default location).
+                  // Create mode leaves this null (no pre-populated points to fit).
+                  initialFitKey={editingZone ? editingZone.id : null}
                 />
               </div>
             </div>

@@ -9,7 +9,158 @@ import config from '../../config/app.config';
 import { Batch, QrCode, BatchStatus, QrStatus } from '@prisma/client';
 import { CreateBatchInput } from './checkvn-qr.dto';
 
+// ==================== CONSTANTS ====================
+
+const BATCH_LIST_TTL_SECONDS = 300;       // 5 minutes
+const BATCH_DETAIL_TTL_SECONDS = 600;    // 10 minutes
+const BATCH_QR_CODES_TTL_SECONDS = 300;  // 5 minutes
+
+// ==================== SERVICE ====================
+
 export class CheckvnQrService {
+
+  // ==================== CACHE HELPERS ====================
+
+  private async invalidateBatchCache(batchId?: string, cooperativeId?: string): Promise<void> {
+    try {
+      const redis = await getRedisClient();
+      await redis.del('batches:list:all');
+      if (cooperativeId) {
+        await redis.del(`batches:list:coop:${cooperativeId}`);
+      }
+      if (batchId) {
+        await redis.del(`batches:detail:${batchId}`);
+        await redis.del(`batches:qr-codes:${batchId}`);
+      }
+    } catch (error) {
+      console.error('[Redis Error] Failed to invalidate batch cache:', error);
+    }
+  }
+
+  private getBatchListCacheKey(user: any): string {
+    if (user.role === 'SUPER_ADMIN') return 'batches:list:all';
+    return `batches:list:coop:${user.cooperativeId}`;
+  }
+
+  private async invalidateQrCache(batchId: string): Promise<void> {
+    try {
+      const qrCodes = await checkvnQrRepository.getBatchQrCodes(batchId);
+      if (qrCodes.length === 0) return;
+
+      const redis = await getRedisClient();
+      const keys = qrCodes.map((qr) => `qr:trace:${qr.code}`);
+      await redis.del(keys);
+    } catch (err: any) {
+      console.error('[Redis Error] Failed to invalidate QR trace cache:', err.message);
+    }
+  }
+
+  // ==================== QUERIES ====================
+
+  public async getAllBatches(user: any): Promise<Batch[]> {
+    const cacheKey = this.getBatchListCacheKey(user);
+
+    // Try cache first
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (error) {
+      console.error('[Redis Error] Failed to get batch list cache:', error);
+    }
+
+    const batches = user.role === 'SUPER_ADMIN'
+      ? await checkvnQrRepository.findAllBatches({})
+      : await checkvnQrRepository.findAllBatches({ cooperativeId: user.cooperativeId });
+
+    // Store in cache
+    try {
+      const redis = await getRedisClient();
+      await redis.set(cacheKey, JSON.stringify(batches), { EX: BATCH_LIST_TTL_SECONDS });
+    } catch (error) {
+      console.error('[Redis Error] Failed to set batch list cache:', error);
+    }
+
+    return batches;
+  }
+
+  public async getBatchById(id: string, user: any): Promise<any> {
+    // Try cache first
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(`batches:detail:${id}`);
+      if (cached) {
+        const batch = JSON.parse(cached);
+        // Still enforce RBAC on cached data
+        const cooperativeId = batch.season.farm_zone.farmer.cooperative_id;
+        if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
+          throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập thông tin lô hàng này');
+        }
+        return batch;
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      console.error('[Redis Error] Failed to get batch detail cache:', error);
+    }
+
+    const batch = await checkvnQrRepository.findBatchById(id);
+    if (!batch) {
+      throw new AppError('BATCH_NOT_FOUND', 404, 'Không tìm thấy lô hàng');
+    }
+
+    // RBAC check
+    const cooperativeId = batch.season.farm_zone.farmer.cooperative_id;
+    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
+      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập thông tin lô hàng này');
+    }
+
+    // Store in cache
+    try {
+      const redis = await getRedisClient();
+      await redis.set(`batches:detail:${id}`, JSON.stringify(batch), { EX: BATCH_DETAIL_TTL_SECONDS });
+    } catch (error) {
+      console.error('[Redis Error] Failed to set batch detail cache:', error);
+    }
+
+    return batch;
+  }
+
+  public async getBatchQrCodes(batchId: string, user: any): Promise<QrCode[]> {
+    // Try cache first
+    try {
+      const redis = await getRedisClient();
+      const cached = await redis.get(`batches:qr-codes:${batchId}`);
+      if (cached) return JSON.parse(cached);
+    } catch (error) {
+      console.error('[Redis Error] Failed to get batch QR codes cache:', error);
+    }
+
+    const batch = await checkvnQrRepository.findBatchById(batchId);
+    if (!batch) {
+      throw new AppError('BATCH_NOT_FOUND', 404, 'Không tìm thấy lô hàng');
+    }
+
+    // RBAC check
+    const cooperativeId = batch.season.farm_zone.farmer.cooperative_id;
+    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
+      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập danh sách QR của lô hàng này');
+    }
+
+    const qrCodes = await checkvnQrRepository.getBatchQrCodes(batchId);
+
+    // Store in cache
+    try {
+      const redis = await getRedisClient();
+      await redis.set(`batches:qr-codes:${batchId}`, JSON.stringify(qrCodes), { EX: BATCH_QR_CODES_TTL_SECONDS });
+    } catch (error) {
+      console.error('[Redis Error] Failed to set batch QR codes cache:', error);
+    }
+
+    return qrCodes;
+  }
+
+  // ==================== MUTATIONS ====================
+
   public async createBatch(data: CreateBatchInput, user: any): Promise<Batch> {
     // 1. Kiểm tra vụ mùa tồn tại
     const season = await seasonRepository.findById(data.season_id);
@@ -68,8 +219,8 @@ export class CheckvnQrService {
     const nextNum = String(maxNum + 1).padStart(3, '0');
     const batchCode = `${prefix}${nextNum}`;
 
-    // 6. Tạo batch trong DB với status DRAFT
-    return checkvnQrRepository.createBatch({
+    // 7. Tạo batch trong DB với status DRAFT
+    const batch = await checkvnQrRepository.createBatch({
       season_id: data.season_id,
       batch_code: batchCode,
       batch_name: data.batch_name,
@@ -79,6 +230,11 @@ export class CheckvnQrService {
       product_description: data.product_description,
       created_by: user.farmerId || user.userId,
     });
+
+    // Invalidate list caches (new record, no detail key yet)
+    await this.invalidateBatchCache(undefined, cooperativeId);
+
+    return batch;
   }
 
   public async requestQrCode(batchId: string, user: any): Promise<{ checkvn_batch_id: string }> {
@@ -111,6 +267,9 @@ export class CheckvnQrService {
     await checkvnQrRepository.updateBatchStatus(batchId, BatchStatus.PENDING_QR, {
       checkvn_batch_id: checkvnBatchId,
     });
+
+    // Invalidate caches (status changed)
+    await this.invalidateBatchCache(batchId, cooperativeId);
 
     // Kích hoạt luồng giả lập CheckVN gửi webhook sau 2 giây
     this.triggerMockCheckvnWebhook(batchId, checkvnBatchId, batch.batch_code, batch.quantity_qr_requested);
@@ -146,51 +305,13 @@ export class CheckvnQrService {
     // 4. Lưu danh sách QR codes ở trạng thái INACTIVE trong transaction
     await checkvnQrRepository.saveQrCodesTransaction(batch.id, payload.qr_codes);
 
+    // Invalidate caches (QR codes added, status changed to QR_RECEIVED)
+    // Fetch full batch with includes for cooperative_id needed by cache invalidation
+    const batchWithIncludes = await checkvnQrRepository.findBatchById(batch.id);
+    const cooperativeId = batchWithIncludes?.season.farm_zone.farmer.cooperative_id;
+    await this.invalidateBatchCache(batch.id, cooperativeId);
+
     return { message: 'Webhook processed successfully' };
-  }
-
-  public async getBatchById(id: string, user: any): Promise<any> {
-    const batch = await checkvnQrRepository.findBatchById(id);
-    if (!batch) {
-      throw new AppError('BATCH_NOT_FOUND', 404, 'Không tìm thấy lô hàng');
-    }
-
-    // Kiểm tra quyền
-    const farmZone = batch.season.farm_zone;
-    const cooperativeId = farmZone.farmer.cooperative_id;
-
-    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
-      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập thông tin lô hàng này');
-    }
-
-    return batch;
-  }
-
-  public async getAllBatches(user: any): Promise<Batch[]> {
-    if (user.role === 'SUPER_ADMIN') {
-      return checkvnQrRepository.findAllBatches({});
-    }
-
-    return checkvnQrRepository.findAllBatches({
-      cooperativeId: user.cooperativeId,
-    });
-  }
-
-  public async getBatchQrCodes(batchId: string, user: any): Promise<QrCode[]> {
-    const batch = await checkvnQrRepository.findBatchById(batchId);
-    if (!batch) {
-      throw new AppError('BATCH_NOT_FOUND', 404, 'Không tìm thấy lô hàng');
-    }
-
-    // Kiểm tra quyền
-    const farmZone = batch.season.farm_zone;
-    const cooperativeId = farmZone.farmer.cooperative_id;
-
-    if (user.role !== 'SUPER_ADMIN' && user.cooperativeId !== cooperativeId) {
-      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền truy cập danh sách QR của lô hàng này');
-    }
-
-    return checkvnQrRepository.getBatchQrCodes(batchId);
   }
 
   public async activateBatch(batchId: string, note: string | undefined, user: any): Promise<void> {
@@ -215,7 +336,8 @@ export class CheckvnQrService {
     // Kích hoạt lô hàng và toàn bộ mã QR trong transaction
     await checkvnQrRepository.activateBatchTransaction(batchId, note);
 
-    // Xóa cache Redis cho toàn bộ mã QR trong lô hàng này
+    // Invalidate batch caches + QR trace caches
+    await this.invalidateBatchCache(batchId, cooperativeId);
     await this.invalidateQrCache(batchId);
   }
 
@@ -241,9 +363,12 @@ export class CheckvnQrService {
     // Thu hồi lô hàng và toàn bộ mã QR trong transaction
     await checkvnQrRepository.recallBatchTransaction(batchId, reason);
 
-    // Xóa cache Redis cho toàn bộ mã QR trong lô hàng này
+    // Invalidate batch caches + QR trace caches
+    await this.invalidateBatchCache(batchId, cooperativeId);
     await this.invalidateQrCache(batchId);
   }
+
+  // ==================== PUBLIC (no auth) ====================
 
   public async publicTrace(qrCodeValue: string): Promise<any> {
     const cacheKey = `qr:trace:${qrCodeValue}`;
@@ -355,23 +480,12 @@ export class CheckvnQrService {
     return traceData;
   }
 
+  // ==================== PRIVATE HELPERS ====================
+
   private incrementScanInBackground(qrCodeId: string): void {
     checkvnQrRepository.incrementQrScanCount(qrCodeId).catch((err) => {
       console.error('[Background Task Error] Failed to increment scan count:', err.message);
     });
-  }
-
-  private async invalidateQrCache(batchId: string): Promise<void> {
-    try {
-      const qrCodes = await checkvnQrRepository.getBatchQrCodes(batchId);
-      if (qrCodes.length === 0) return;
-
-      const redis = await getRedisClient();
-      const keys = qrCodes.map((qr) => `qr:trace:${qr.code}`);
-      await redis.del(keys);
-    } catch (err: any) {
-      console.error('[Redis Error] Failed to invalidate QR trace cache:', err.message);
-    }
   }
 
   private triggerMockCheckvnWebhook(batchId: string, checkvnBatchId: string, batchCode: string, quantity: number): void {
