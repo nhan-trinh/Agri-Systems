@@ -2,21 +2,14 @@ import { farmingLogService } from './farming-log.service';
 import { farmingLogRepository } from './farming-log.repository';
 import { seasonRepository } from '../season/season.repository';
 import { seasonService } from '../season/season.service';
+import { warehouseRepository } from '../warehouse/warehouse.repository';
 import { AppError } from '../../shared/utils/app-error';
 import { ActivityType, SeasonStatus } from '@prisma/client';
-import prisma from '../../prisma/client';
 
 jest.mock('./farming-log.repository');
 jest.mock('../season/season.repository');
 jest.mock('../season/season.service');
-jest.mock('../../prisma/client', () => ({
-  __esModule: true,
-  default: {
-    material: {
-      findUnique: jest.fn(),
-    },
-  },
-}));
+jest.mock('../warehouse/warehouse.repository');
 
 const mockUser = {
   userId: 'user-1',
@@ -57,7 +50,7 @@ describe('FarmingLogService — material linkage and auto-completion', () => {
   describe('createLog with material_id', () => {
     it('successfully links a material and auto-fills fertilizer_type', async () => {
       (seasonRepository.findById as jest.Mock).mockResolvedValue(mockSeason);
-      (prisma.material.findUnique as jest.Mock).mockResolvedValue(mockMaterial);
+      (warehouseRepository.findMaterialById as jest.Mock).mockResolvedValue(mockMaterial);
       (farmingLogRepository.create as jest.Mock).mockResolvedValue({ id: 'log-1' });
 
       const logData = {
@@ -70,10 +63,8 @@ describe('FarmingLogService — material linkage and auto-completion', () => {
 
       await farmingLogService.createLog(logData, mockUser);
 
-      // Verify material lookup
-      expect(prisma.material.findUnique).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
-      });
+      // Verify material lookup goes through the warehouse repository
+      expect(warehouseRepository.findMaterialById).toHaveBeenCalledWith('mat-1');
 
       // Verify farmingLogRepository.create was called with auto-filled fertilizer_type
       expect(farmingLogRepository.create).toHaveBeenCalledWith(
@@ -87,7 +78,7 @@ describe('FarmingLogService — material linkage and auto-completion', () => {
 
     it('rejects if material belongs to another cooperative', async () => {
       (seasonRepository.findById as jest.Mock).mockResolvedValue(mockSeason);
-      (prisma.material.findUnique as jest.Mock).mockResolvedValue({
+      (warehouseRepository.findMaterialById as jest.Mock).mockResolvedValue({
         ...mockMaterial,
         cooperative_id: 'coop-other',
       });
