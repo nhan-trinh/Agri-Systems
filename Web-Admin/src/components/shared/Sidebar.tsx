@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { 
-  LayoutDashboard, 
-  Building2, 
-  Leaf, 
-  Users, 
-  UserCog, 
-  Map, 
-  Calendar, 
-  QrCode, 
-  FileSearch, 
-  Package, 
+  LayoutDashboard,
+  Building2,
+  Leaf,
+  Users,
+  UserCog,
+  Map,
+  Calendar,
+  QrCode,
+  FileSearch,
+  Package,
+  Wheat,
   BarChart3,
   LogOut,
   Sprout
@@ -92,6 +93,12 @@ export function Sidebar() {
       href: '/warehouse',
       icon: Package,
       roles: ['HTX_MANAGER', 'WAREHOUSE_KEEPER'],
+    },
+    {
+      title: 'Kho nông sản',
+      href: '/harvest-warehouse',
+      icon: Wheat,
+      roles: ['SUPER_ADMIN', 'HTX_MANAGER', 'WAREHOUSE_KEEPER'],
     },
     {
       title: 'Báo cáo giám sát',

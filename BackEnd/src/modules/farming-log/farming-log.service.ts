@@ -1,10 +1,10 @@
 import { farmingLogRepository, FarmingLogWithSeason } from './farming-log.repository';
 import { seasonRepository } from '../season/season.repository';
 import { seasonService } from '../season/season.service';
+import { warehouseRepository } from '../warehouse/warehouse.repository';
 import { AppError } from '../../shared/utils/app-error';
-import { ActivityType, SeasonStatus, UserRole } from '@prisma/client';
+import { ActivityType, Prisma, SeasonStatus, UserRole } from '@prisma/client';
 import { JwtPayload } from '../auth/auth.types';
-import prisma from '../../prisma/client';
 
 export class FarmingLogService {
   public async getLogs(user: JwtPayload, seasonId?: string): Promise<FarmingLogWithSeason[]> {
@@ -92,10 +92,12 @@ export class FarmingLogService {
     }
 
     // 5.1 Link to Warehouse material (if material_id is provided)
+    // Auto-fills fertilizer_type / product_name / unit from the linked material.
+    // Resolved here (not by mutating the caller's `data`) and folded into `input` below.
+    let materialName: string | undefined;
+    let materialUnit: string | undefined;
     if (material_id) {
-      const material = await prisma.material.findUnique({
-        where: { id: material_id },
-      });
+      const material = await warehouseRepository.findMaterialById(material_id);
       if (!material) {
         throw new AppError('MATERIAL_NOT_FOUND', 404, 'Không tìm thấy vật tư trong kho');
       }
@@ -103,13 +105,8 @@ export class FarmingLogService {
         throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền sử dụng vật tư của HTX khác');
       }
 
-      // Auto-fill
-      if (activity_type === ActivityType.FERTILIZING) {
-        data.fertilizer_type = material.material_name;
-      } else if (activity_type === ActivityType.PESTICIDE) {
-        data.product_name = material.material_name;
-        data.unit = material.unit;
-      }
+      materialName = material.material_name;
+      materialUnit = material.unit;
     }
 
     // 6. Build input — extract conditional fields based on activity_type
@@ -124,12 +121,12 @@ export class FarmingLogService {
     };
 
     if (activity_type === ActivityType.FERTILIZING) {
-      input.fertilizer_type = data.fertilizer_type;
+      input.fertilizer_type = materialName ?? data.fertilizer_type;
       input.quantity_kg = data.quantity_kg;
     } else if (activity_type === ActivityType.PESTICIDE) {
-      input.product_name = data.product_name;
+      input.product_name = materialName ?? data.product_name;
       input.dosage = data.dosage;
-      input.unit = data.unit;
+      input.unit = materialUnit ?? data.unit;
     } else if (activity_type === ActivityType.IRRIGATION) {
       input.water_volume_m3 = data.water_volume_m3;
       input.duration_hours = data.duration_hours;
@@ -138,9 +135,31 @@ export class FarmingLogService {
       input.harvest_method = data.harvest_method;
     }
 
-    const createdLog = await farmingLogRepository.create(input as Parameters<typeof farmingLogRepository.create>[0]);
+    let createdLog: FarmingLogWithSeason;
+    try {
+      createdLog = await farmingLogRepository.create(input as Parameters<typeof farmingLogRepository.create>[0]);
+    } catch (err) {
+      // The partial unique index (farming_log_single_harvest_per_season) makes the
+      // single-harvest rule race-proof. A P2002 on a HARVESTING insert means a concurrent
+      // request already created the harvest log — translate it to the domain error.
+      if (
+        activity_type === ActivityType.HARVESTING &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new AppError(
+          'DUPLICATE_HARVESTING_LOG',
+          409,
+          'Vụ mùa này đã có nhật ký thu hoạch. Mỗi vụ mùa chỉ được ghi một lần thu hoạch.'
+        );
+      }
+      throw err;
+    }
 
-    // Auto-complete season on harvesting log
+    // Auto-complete season on harvesting log.
+    // If completion fails, the harvest log is inconsistent with the (still-ACTIVE) season,
+    // so we compensate by soft-deleting the just-created log and rethrowing — the client
+    // must learn the operation failed rather than receive a silent 201.
     if (activity_type === ActivityType.HARVESTING) {
       try {
         await seasonService.completeSeason(season_id, {
@@ -148,7 +167,10 @@ export class FarmingLogService {
           actual_yield_kg: data.yield_kg,
         }, user);
       } catch (err) {
-        console.error('Failed to auto-complete season:', err);
+        await farmingLogRepository.delete(createdLog.id).catch((cleanupErr) =>
+          console.error('Failed to roll back harvest log after season-completion failure:', cleanupErr)
+        );
+        throw err;
       }
     }
 
@@ -194,12 +216,13 @@ export class FarmingLogService {
       }
     }
 
-    // Validate new material_id if provided
+    // Resolve new material_id if provided — validate ownership and capture
+    // auto-fill values locally (do not mutate the caller's `data`).
+    let newMaterialName: string | undefined;
+    let newMaterialUnit: string | undefined;
     if (data.material_id !== undefined) {
       if (data.material_id) {
-        const material = await prisma.material.findUnique({
-          where: { id: data.material_id as string },
-        });
+        const material = await warehouseRepository.findMaterialById(data.material_id as string);
         if (!material) {
           throw new AppError('MATERIAL_NOT_FOUND', 404, 'Không tìm thấy vật tư trong kho');
         }
@@ -207,12 +230,8 @@ export class FarmingLogService {
           throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền sử dụng vật tư của HTX khác');
         }
 
-        if (log.activity_type === ActivityType.FERTILIZING) {
-          data.fertilizer_type = material.material_name;
-        } else if (log.activity_type === ActivityType.PESTICIDE) {
-          data.product_name = material.material_name;
-          data.unit = material.unit;
-        }
+        newMaterialName = material.material_name;
+        newMaterialUnit = material.unit;
       }
     }
 
@@ -223,13 +242,17 @@ export class FarmingLogService {
     if (data.photo_urls !== undefined) updatePayload.photo_urls = data.photo_urls;
     if (data.material_id !== undefined) updatePayload.material_id = data.material_id || null;
 
+    // If a material was (re)linked, auto-fill the name/unit from it; otherwise honor the body.
     if (log.activity_type === ActivityType.FERTILIZING) {
-      if (data.fertilizer_type !== undefined) updatePayload.fertilizer_type = data.fertilizer_type;
+      if (newMaterialName !== undefined) updatePayload.fertilizer_type = newMaterialName;
+      else if (data.fertilizer_type !== undefined) updatePayload.fertilizer_type = data.fertilizer_type;
       if (data.quantity_kg !== undefined) updatePayload.quantity_kg = data.quantity_kg;
     } else if (log.activity_type === ActivityType.PESTICIDE) {
-      if (data.product_name !== undefined) updatePayload.product_name = data.product_name;
+      if (newMaterialName !== undefined) updatePayload.product_name = newMaterialName;
+      else if (data.product_name !== undefined) updatePayload.product_name = data.product_name;
+      if (newMaterialUnit !== undefined) updatePayload.unit = newMaterialUnit;
+      else if (data.unit !== undefined) updatePayload.unit = data.unit;
       if (data.dosage !== undefined) updatePayload.dosage = data.dosage;
-      if (data.unit !== undefined) updatePayload.unit = data.unit;
     } else if (log.activity_type === ActivityType.IRRIGATION) {
       if (data.water_volume_m3 !== undefined) updatePayload.water_volume_m3 = data.water_volume_m3;
       if (data.duration_hours !== undefined) updatePayload.duration_hours = data.duration_hours;
