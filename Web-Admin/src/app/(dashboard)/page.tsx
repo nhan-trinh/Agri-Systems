@@ -60,13 +60,6 @@ export default function DashboardPage() {
 
           {/* Quick actions */}
           <QuickActions role={user.role} />
-
-          {/* Farm-zone map */}
-          <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
-            <div className="h-[450px] w-full overflow-hidden rounded-b-xl">
-              <FarmZoneMap zones={zones} />
-            </div>
-          </DashboardSection>
         </div>
 
         {/* Right: Activities & Alerts */}
@@ -74,6 +67,13 @@ export default function DashboardPage() {
           <RecentActivitiesPanel cooperativeId={cooperativeId} />
         </div>
       </div>
+
+      {/* ── Farm-zone map (Full width) ── */}
+      <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
+        <div className="h-[450px] w-full overflow-hidden rounded-b-xl">
+          <FarmZoneMap zones={zones} />
+        </div>
+      </DashboardSection>
     </div>
   );
 }
