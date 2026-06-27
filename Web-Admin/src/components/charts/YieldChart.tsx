@@ -103,7 +103,7 @@ export function YieldChart({ year, cooperativeId }: YieldChartProps) {
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="text-xs font-bold text-stone-600 bg-[#f4f7f3] border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1b4332] transition-all cursor-pointer"
+          className="text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 border-0 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-0 transition-all cursor-pointer"
         >
           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -116,19 +116,19 @@ export function YieldChart({ year, cooperativeId }: YieldChartProps) {
           <AreaChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
             <defs>
               <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2d6a4f" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#2d6a4f" stopOpacity={0.02} />
+                <stop offset="5%" stopColor="#52b788" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#52b788" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e6ebe3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f2ef" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }}
-              axisLine={{ stroke: '#e6ebe3' }}
+              tick={{ fontSize: 10, fill: '#888b86', fontWeight: 500 }}
+              axisLine={{ stroke: '#f0f2ef' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#78716c' }}
+              tick={{ fontSize: 9, fill: '#888b86' }}
               axisLine={false}
               tickLine={false}
               label={{ value: 'Tấn', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#a8a29e', offset: 15 }}
@@ -136,11 +136,11 @@ export function YieldChart({ year, cooperativeId }: YieldChartProps) {
             <Tooltip
               contentStyle={{
                 backgroundColor: '#fff',
-                border: '1px solid #e6ebe3',
+                border: 'none',
                 borderRadius: '12px',
                 fontSize: '12px',
                 fontWeight: 600,
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                boxShadow: '0 10px 25px -5px rgba(27, 67, 50, 0.08)',
               }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => [`${value} tấn`, 'Sản lượng']}

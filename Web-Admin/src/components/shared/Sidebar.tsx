@@ -114,9 +114,8 @@ export function Sidebar() {
     logout();
     router.push('/login');
   };
-
   return (
-    <aside className="w-68 border-r border-[#e6ebe3] bg-[#fbfcf9] h-screen hidden md:flex flex-col justify-between sticky top-0 font-sans">
+    <aside className="w-68 bg-white h-screen hidden md:flex flex-col justify-between sticky top-0 font-sans shadow-[1px_0_3px_rgba(0,0,0,0.01),6px_0_24px_rgba(27,67,50,0.015)] z-20">
       <div className="flex flex-col pt-6 px-4">
         {/* Branding */}
         <div className="flex items-center gap-3 px-3 mb-8">
@@ -142,15 +141,12 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 group relative ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 group relative ${
                   isActive
                     ? 'bg-[#1b4332] text-white shadow-sm'
-                    : 'text-stone-600 hover:text-[#1b4332] hover:bg-[#f0f4ee]'
+                    : 'text-stone-600 hover:text-[#1b4332] hover:bg-[#f4f6f3]'
                 }`}
               >
-                {isActive && (
-                  <span className="absolute left-0 top-1/4 bottom-1/4 w-[4px] bg-[#52b788] rounded-r-full" />
-                )}
                 <Icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[#52b788]' : 'text-stone-400 group-hover:text-[#1b4332]'}`} />
                 <span>{item.title}</span>
               </Link>
@@ -160,16 +156,16 @@ export function Sidebar() {
       </div>
 
       {/* Footer Info & Logout */}
-      <div className="p-4 border-t border-[#e6ebe3] bg-[#f7f9f5]">
-        <div className="flex items-center gap-3 mb-4 px-2">
+      <div className="mx-3 mb-6 p-4 rounded-2xl bg-[#f8faf8] shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+        <div className="flex items-center gap-3 mb-4 px-1">
           {user.avatarUrl ? (
             <img 
               src={user.avatarUrl} 
               alt="Avatar" 
-              className="h-10 w-10 rounded-full border-2 border-emerald-600 object-cover"
+              className="h-10 w-10 rounded-full object-cover"
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center border-2 border-emerald-600">
+            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
               <span className="font-bold text-[#1b4332] text-sm">
                 {user.role.substring(0, 2)}
               </span>
@@ -183,7 +179,7 @@ export function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 transition-all duration-300"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-50 hover:border-red-100 transition-all duration-300"
         >
           <LogOut className="h-4 w-4" />
           Đăng xuất

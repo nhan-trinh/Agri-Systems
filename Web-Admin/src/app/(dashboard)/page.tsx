@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Sprout, TrendingUp, Map } from 'lucide-react';
+import { TrendingUp, Sprout, Map } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api/axios';
-import { ZoneData } from '@/components/map/FarmZoneMap';
+import type { ZoneData } from '@/components/map/FarmZoneMap';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -29,7 +29,7 @@ export default function DashboardPage() {
       .then((res) => {
         if (res.data?.success) setZones(res.data.data);
       })
-      .catch((err) => console.error('Lỗi khi tải danh sách vùng trồng:', err));
+      .catch(() => {});
   }, [user]);
 
   if (!user) return null;
@@ -37,35 +37,39 @@ export default function DashboardPage() {
   const cooperativeId = user.cooperativeId || undefined;
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Compact greeting */}
+    <div className="space-y-8">
+      {/* ── Hero header with Carbon Pulse ── */}
       <DashboardHeader user={user} />
 
-      {/* KPI grid */}
-      <DashboardStatsCards cooperativeId={cooperativeId} />
+      {/* ── Stats + Alerts — 2-column split ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <DashboardStatsCards cooperativeId={cooperativeId} />
+        </div>
+        <div>
+          <RecentActivitiesPanel cooperativeId={cooperativeId} />
+        </div>
+      </div>
 
-      {/* Charts — centerpiece */}
+      {/* ── Charts ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardSection title="Xu hướng phát thải & hấp thụ Carbon" icon={TrendingUp}>
+        <DashboardSection title="Xu hướng Carbon" icon={TrendingUp}>
           <CarbonTrendChart cooperativeId={cooperativeId} />
         </DashboardSection>
-        <DashboardSection title="Sản lượng thu hoạch theo tháng" icon={Sprout}>
+        <DashboardSection title="Sản lượng thu hoạch" icon={Sprout}>
           <YieldChart cooperativeId={cooperativeId} />
         </DashboardSection>
       </div>
 
-      {/* Alerts & activity feed */}
-      <RecentActivitiesPanel cooperativeId={cooperativeId} />
+      {/* ── Quick actions ── */}
+      <QuickActions role={user.role} />
 
-      {/* Farm-zone map */}
-      <DashboardSection title="Bản đồ vùng trồng liên kết vệ tinh" icon={Map} bodyClassName="p-0">
-        <div className="h-[450px] w-full rounded-xl overflow-hidden">
+      {/* ── Farm-zone map ── */}
+      <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
+        <div className="h-[450px] w-full overflow-hidden rounded-b-3xl">
           <FarmZoneMap zones={zones} />
         </div>
       </DashboardSection>
-
-      {/* Role-based quick actions */}
-      <QuickActions role={user.role} />
     </div>
   );
 }

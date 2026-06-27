@@ -10,15 +10,15 @@ export function Header() {
   const getRoleBadgeStyles = (role: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-700';
       case 'HTX_MANAGER':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700';
       case 'WAREHOUSE_KEEPER':
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-stone-100 text-stone-600';
       case 'GOV_VIEWER':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-blue-700';
       default:
-        return 'bg-stone-50 text-stone-700 border-stone-200';
+        return 'bg-stone-100 text-stone-600';
     }
   };
 
@@ -38,7 +38,7 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-[#e6ebe3] bg-white flex items-center justify-between px-6 font-sans">
+    <header className="h-16 bg-white/75 backdrop-blur-md shadow-[0_1px_2px_rgba(0,0,0,0.01),0_4px_20px_rgba(27,67,50,0.02)] flex items-center justify-between px-8 font-sans sticky top-0 z-30">
       <div className="flex items-center gap-2">
         <h2 className="text-stone-800 font-semibold text-base hidden md:block">
           Hệ thống Quản lý AgriTrace
@@ -47,12 +47,12 @@ export function Header() {
 
       <div className="flex items-center gap-4">
         {/* Role Badge */}
-        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getRoleBadgeStyles(user.role)}`}>
+        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getRoleBadgeStyles(user.role)}`}>
           {getRoleLabel(user.role)}
         </span>
 
         {/* User Info */}
-        <div className="flex items-center gap-3 pl-3 border-l border-[#e6ebe3]">
+        <div className="flex items-center gap-3 pl-4">
           <div className="flex flex-col text-right hidden sm:flex">
             <span className="text-xs font-semibold text-stone-800">
               {user.zaloName || user.phone}
@@ -66,10 +66,10 @@ export function Header() {
             <img 
               src={user.avatarUrl} 
               alt="User avatar" 
-              className="h-9 w-9 rounded-full object-cover border border-[#e6ebe3]"
+              className="h-9 w-9 rounded-full object-cover"
             />
           ) : (
-            <div className="h-9 w-9 rounded-full bg-emerald-50 text-emerald-700 font-semibold flex items-center justify-center border border-emerald-100">
+            <div className="h-9 w-9 rounded-full bg-emerald-50 text-emerald-700 font-semibold flex items-center justify-center">
               {user.role.substring(0, 2)}
             </div>
           )}
