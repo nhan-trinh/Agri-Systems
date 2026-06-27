@@ -162,17 +162,17 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
       {/* ─── Hero cards row ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Hero 1: Carbon Credits */}
-        <div className="relative overflow-hidden rounded-3xl bg-[#1b4332] p-7 text-white shadow-sm">
+        <div className="relative overflow-hidden rounded-xl bg-[#1b4332] p-7 text-white shadow-sm">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-xl bg-white/10">
+              <div className="p-2 rounded-lg bg-white/10">
                 <Award className="h-5 w-5 text-emerald-300" strokeWidth={1.8} />
               </div>
               <span className="text-[11px] font-semibold text-emerald-300/80 uppercase tracking-[0.1em]">
                 Tín chỉ carbon
               </span>
             </div>
-            <p className="font-serif text-4.5xl font-bold tracking-tight leading-none">
+            <p className="font-sans text-4.5xl font-bold tracking-tight leading-none">
               {stats.carbon.total_credits_tCO2e.toFixed(1)}
               <span className="text-base font-medium text-emerald-300 ml-1.5">tCO₂e</span>
             </p>
@@ -183,17 +183,17 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
         </div>
 
         {/* Hero 2: Total Yield */}
-        <div className="relative overflow-hidden rounded-3xl bg-[#faf5e8] p-7 shadow-sm">
+        <div className="relative overflow-hidden rounded-xl bg-[#faf5e8] p-7 shadow-sm">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-xl bg-amber-100/80">
+              <div className="p-2 rounded-lg bg-amber-100/80">
                 <Wheat className="h-5 w-5 text-amber-700" strokeWidth={1.8} />
               </div>
               <span className="text-[11px] font-semibold text-amber-700/70 uppercase tracking-[0.1em]">
                 Sản lượng thu hoạch
               </span>
             </div>
-            <p className="font-serif text-4.5xl font-bold text-stone-800 tracking-tight leading-none">
+            <p className="font-sans text-4.5xl font-bold text-stone-900 tracking-tight leading-none">
               {(stats.total_yield_kg_ytd / 1000).toFixed(1)}
               <span className="text-base font-medium text-amber-700/60 ml-1.5">tấn</span>
             </p>
@@ -205,27 +205,27 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
       </div>
 
       {/* ─── Operational metric cards ─── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {operationalCards.map((card, i) => {
           const Icon = card.icon;
           return (
             <div
               key={i}
-              className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.015)] border-0"
+              className="rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] border-0"
             >
-              <div className="flex items-start gap-3">
-                <div className={`${card.accentBg} ${card.accent} p-2 rounded-xl`}>
+              <div className="flex flex-col gap-3">
+                <div className={`${card.accentBg} ${card.accent} p-2 rounded-lg w-fit`}>
                   <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.06em] truncate">
                     {card.label}
                   </p>
-                  <p className="font-serif text-2xl font-bold text-stone-800 mt-0.5 leading-tight tracking-tight">
+                  <p className="font-sans text-2xl font-bold text-stone-900 mt-0.5 leading-tight tracking-tight">
                     {card.value}
                   </p>
                   {card.subtext && (
-                    <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">
+                    <p className="text-[9px] text-stone-400 font-medium mt-0.5 truncate">
                       {card.subtext}
                     </p>
                   )}
@@ -238,15 +238,15 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
 
       {/* ─── Carbon Balance Banner ─── */}
       {stats.carbon.total_credits_tCO2e > 0 && (
-        <div className="flex items-center gap-4 rounded-2xl bg-emerald-50/40 px-6 py-4">
-          <div className="p-2.5 rounded-xl bg-emerald-100/80">
+        <div className="flex items-center gap-4 rounded-xl bg-emerald-50/40 px-6 py-4">
+          <div className="p-2.5 rounded-lg bg-emerald-100/80">
             <TrendingDown className="h-5 w-5 text-emerald-700" strokeWidth={1.8} />
           </div>
           <div className="flex-1">
             <p className="text-xs font-semibold text-emerald-800/80">
               Tổng lượng giảm phát thải đã được chứng nhận
             </p>
-            <p className="font-serif text-lg font-bold text-emerald-900 mt-0.5">
+            <p className="font-sans text-lg font-bold text-emerald-900 mt-0.5">
               {stats.carbon.total_credits_tCO2e.toFixed(2)}{' '}
               <span className="text-sm font-medium text-emerald-600">tCO₂e</span>
             </p>

@@ -37,39 +37,43 @@ export default function DashboardPage() {
   const cooperativeId = user.cooperativeId || undefined;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ── Hero header with Carbon Pulse ── */}
       <DashboardHeader user={user} />
 
-      {/* ── Stats + Alerts — 2-column split ── */}
+      {/* ── Full width Stats Cards ── */}
+      <DashboardStatsCards cooperativeId={cooperativeId} />
+
+      {/* ── 2-column Layout Split ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DashboardStatsCards cooperativeId={cooperativeId} />
+        {/* Left: Charts, Quick Actions, and Map */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <DashboardSection title="Xu hướng Carbon" icon={TrendingUp}>
+              <CarbonTrendChart cooperativeId={cooperativeId} />
+            </DashboardSection>
+            <DashboardSection title="Sản lượng thu hoạch" icon={Sprout}>
+              <YieldChart cooperativeId={cooperativeId} />
+            </DashboardSection>
+          </div>
+
+          {/* Quick actions */}
+          <QuickActions role={user.role} />
+
+          {/* Farm-zone map */}
+          <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
+            <div className="h-[450px] w-full overflow-hidden rounded-b-xl">
+              <FarmZoneMap zones={zones} />
+            </div>
+          </DashboardSection>
         </div>
-        <div>
+
+        {/* Right: Activities & Alerts */}
+        <div className="lg:col-span-1">
           <RecentActivitiesPanel cooperativeId={cooperativeId} />
         </div>
       </div>
-
-      {/* ── Charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardSection title="Xu hướng Carbon" icon={TrendingUp}>
-          <CarbonTrendChart cooperativeId={cooperativeId} />
-        </DashboardSection>
-        <DashboardSection title="Sản lượng thu hoạch" icon={Sprout}>
-          <YieldChart cooperativeId={cooperativeId} />
-        </DashboardSection>
-      </div>
-
-      {/* ── Quick actions ── */}
-      <QuickActions role={user.role} />
-
-      {/* ── Farm-zone map ── */}
-      <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
-        <div className="h-[450px] w-full overflow-hidden rounded-b-3xl">
-          <FarmZoneMap zones={zones} />
-        </div>
-      </DashboardSection>
     </div>
   );
 }

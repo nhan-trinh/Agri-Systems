@@ -1,11 +1,8 @@
-# Dashboard Redesign Task Tracker
+# Dashboard Redesign V2 Task Tracker
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| D-01 | Refactor Layout and Header | `[x]` | |
-| D-02 | Refactor Sidebar | `[x]` | |
-| D-03 | Refactor Dashboard Header & Section | `[x]` | |
-| D-04 | Refactor Dashboard Stats Cards | `[x]` | |
-| D-05 | Refactor Charts (Carbon Trend & Yield) | `[x]` | |
-| D-06 | Refactor Quick Actions & Recent Activities | `[x]` | |
-| D-07 | Build Verification and Review | `[x]` | |
+| V2-01 | Restructure page.tsx grid layout | `[x]` | |
+| V2-02 | Refactor DashboardStatsCards (6-column metric row + sans-serif metrics) | `[x]` | |
+| V2-03 | Reduce rounded corners (rounded-xl) across all components | `[x]` | |
+| V2-04 | Verify build and run jest tests | `[x]` | |

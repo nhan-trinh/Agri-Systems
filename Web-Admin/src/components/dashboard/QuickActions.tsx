@@ -153,7 +153,7 @@ function QuickActionCard({ action }: { action: QuickAction }) {
 
   if (disabled) {
     return (
-      <div className="bg-[#fcfdfc] p-6 rounded-3xl opacity-65 relative shadow-[0_4px_24px_rgba(0,0,0,0.005)]">
+      <div className="bg-[#fcfdfc] p-6 rounded-xl opacity-65 relative shadow-[0_4px_24px_rgba(0,0,0,0.005)]">
         {content}
       </div>
     );
@@ -162,7 +162,7 @@ function QuickActionCard({ action }: { action: QuickAction }) {
   return (
     <Link
       href={href!}
-      className="bg-white p-6 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.015)] relative block"
+      className="bg-white p-6 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.015)] relative block"
     >
       {content}
     </Link>

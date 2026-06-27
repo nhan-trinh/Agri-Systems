@@ -118,7 +118,7 @@ export function RecentActivitiesPanel({ cooperativeId }: RecentActivitiesPanelPr
   const showActivities = activities.length > 0;
 
   return (
-    <div className="bg-white rounded-[28px] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_12px_40px_rgba(27,67,50,0.03)] overflow-hidden">
+    <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.015)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2.5">
@@ -150,7 +150,7 @@ export function RecentActivitiesPanel({ cooperativeId }: RecentActivitiesPanelPr
               <Link
                 key={i}
                 href={item.action_url}
-                className="flex items-start gap-2.5 p-3 rounded-2xl bg-orange-50/40 hover:bg-orange-50 transition-all group"
+                className="flex items-start gap-2.5 p-3 rounded-xl bg-orange-50/40 hover:bg-orange-50 transition-all group"
               >
                 <div className="mt-0.5 flex-shrink-0">
                   <AlertCircle className="h-4 w-4 text-orange-500" strokeWidth={1.8} />

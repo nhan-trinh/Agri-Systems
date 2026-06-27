@@ -53,7 +53,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </h1>
           <span
             className={cn(
-              'px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wide',
+              'px-2.5 py-1 rounded-md text-[10px] font-semibold tracking-wide',
               user.role === 'SUPER_ADMIN' && 'bg-amber-50 text-amber-700',
               user.role === 'HTX_MANAGER' && 'bg-emerald-50 text-emerald-700',
               user.role === 'WAREHOUSE_KEEPER' && 'bg-stone-100 text-stone-600',
@@ -67,9 +67,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       </div>
 
       {/* Right: Carbon Pulse — signature element */}
-      <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.015)]">
+      <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.015)]">
         <div className="relative flex-shrink-0">
-          <div className="h-11 w-11 rounded-2xl bg-[#1b4332] flex items-center justify-center shadow-md">
+          <div className="h-11 w-11 rounded-xl bg-[#1b4332] flex items-center justify-center shadow-md">
             <Sprout className="h-5 w-5 text-white" strokeWidth={1.8} />
           </div>
         </div>
