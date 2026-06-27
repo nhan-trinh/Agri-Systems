@@ -46,9 +46,8 @@ export default function DashboardPage() {
 
       {/* ── 2-column Layout Split ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Charts, Quick Actions, and Map */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Charts */}
+        {/* Left: Charts */}
+        <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DashboardSection title="Xu hướng Carbon" icon={TrendingUp}>
               <CarbonTrendChart cooperativeId={cooperativeId} />
@@ -57,9 +56,6 @@ export default function DashboardPage() {
               <YieldChart cooperativeId={cooperativeId} />
             </DashboardSection>
           </div>
-
-          {/* Quick actions */}
-          <QuickActions role={user.role} />
         </div>
 
         {/* Right: Activities & Alerts */}
@@ -67,6 +63,9 @@ export default function DashboardPage() {
           <RecentActivitiesPanel cooperativeId={cooperativeId} />
         </div>
       </div>
+
+      {/* ── Quick Actions (Full width) ── */}
+      <QuickActions role={user.role} />
 
       {/* ── Farm-zone map (Full width) ── */}
       <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
