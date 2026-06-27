@@ -1,56 +1,52 @@
+'use client';
+
 import { type User } from '@/store/auth';
 import { cn } from '@/lib/cn';
 
 const ROLE_LABELS: Record<User['role'], string> = {
   SUPER_ADMIN: 'Super Admin',
-  HTX_MANAGER: 'HTX Manager',
+  HTX_MANAGER: 'Quản lý HTX',
   FARMER: 'Nông dân',
-  WAREHOUSE_KEEPER: 'Warehouse Keeper',
-  GOV_VIEWER: 'Gov Viewer',
+  WAREHOUSE_KEEPER: 'Thủ kho',
+  GOV_VIEWER: 'Giám sát viên',
   PUBLIC: 'Khách',
-};
-
-const ROLE_BADGE_STYLES: Partial<Record<User['role'], string>> = {
-  SUPER_ADMIN: 'bg-amber-50 text-amber-700 border-amber-200',
-  HTX_MANAGER: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  WAREHOUSE_KEEPER: 'bg-slate-100 text-slate-600 border-slate-200',
-  GOV_VIEWER: 'bg-blue-50 text-blue-700 border-blue-200',
 };
 
 interface DashboardHeaderProps {
   user: User;
 }
 
-/**
- * Compact dashboard greeting bar: greeting · today's date (vi-VN) · role badge.
- * Replaces the oversized hero banner — standard SaaS sizing, brand palette kept.
- * Owns the single source of truth for role labels and badge colors.
- */
 export function DashboardHeader({ user }: DashboardHeaderProps) {
-  const today = new Date().toLocaleDateString('vi-VN', {
+  const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
+    day: 'numeric',
+    month: 'long',
     year: 'numeric',
-  });
+  }).format(new Date());
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div className="space-y-1">
-        <h1 className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-[#1b4332]">
-          Xin chào, {user.zaloName || user.phone}!
-        </h1>
-        <p className="text-xs font-medium text-stone-500 capitalize">{today}</p>
+    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+      {/* Greeting */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-stone-400">{today}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-sans text-2xl font-bold tracking-tight text-stone-900 leading-tight">
+            Xin chào, {user.zaloName || user.phone}
+          </h1>
+          <span
+            className={cn(
+              'px-2.5 py-1 rounded-md text-[10px] font-semibold tracking-wide',
+              user.role === 'SUPER_ADMIN' && 'bg-amber-50 text-amber-700',
+              user.role === 'HTX_MANAGER' && 'bg-emerald-50 text-emerald-700',
+              user.role === 'WAREHOUSE_KEEPER' && 'bg-stone-100 text-stone-600',
+              user.role === 'GOV_VIEWER' && 'bg-blue-50 text-blue-700',
+              'bg-stone-100 text-stone-600'
+            )}
+          >
+            {ROLE_LABELS[user.role] ?? user.role}
+          </span>
+        </div>
       </div>
-
-      <span
-        className={cn(
-          'self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold border',
-          ROLE_BADGE_STYLES[user.role] ?? 'bg-stone-100 text-stone-600 border-stone-200'
-        )}
-      >
-        {ROLE_LABELS[user.role] ?? user.role}
-      </span>
     </div>
   );
 }

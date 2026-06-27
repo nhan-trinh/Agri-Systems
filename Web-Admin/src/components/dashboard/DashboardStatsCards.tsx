@@ -10,7 +10,6 @@ import {
   Package,
   QrCode,
   Leaf,
-  CheckCircle,
   Award,
   TrendingDown,
   AlertTriangle,
@@ -59,7 +58,7 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
         setStats(res.data.data);
       }
     } catch {
-      setError('Không thể tải thống kê tổng quan');
+      setError('Không thể tải thống kê');
     } finally {
       setLoading(false);
     }
@@ -67,25 +66,26 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-white p-5 rounded-2xl border border-[#e6ebe3] shadow-sm animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-stone-100 rounded-xl" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-16 bg-stone-100 rounded" />
-                <div className="h-6 w-12 bg-stone-100 rounded" />
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="space-y-5">
+        {/* Hero skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-3xl p-7 animate-pulse bg-stone-100/60 h-[140px]" />
+          ))}
+        </div>
+        {/* Metric skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl p-5 animate-pulse bg-stone-50 h-[90px]" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="bg-white p-6 rounded-2xl border border-[#e6ebe3] shadow-sm flex items-center gap-3">
+      <div className="bg-white p-6 rounded-3xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] flex items-center gap-3">
         <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
         <p className="text-sm text-stone-600 font-medium flex-1">{error || 'Không có dữ liệu'}</p>
         <button
@@ -99,110 +99,133 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
     );
   }
 
-  const cards = [
+  const operationalCards = [
     {
       label: 'Nông dân',
       value: stats.total_farmers,
       icon: Users,
-      color: 'bg-blue-50 text-blue-700',
-      iconColor: 'text-blue-600',
+      accent: 'text-emerald-600',
+      accentBg: 'bg-emerald-50',
     },
     {
       label: 'Vùng trồng',
       value: stats.total_farm_zones,
       icon: Map,
-      color: 'bg-emerald-50 text-emerald-700',
-      iconColor: 'text-emerald-600',
+      accent: 'text-sky-600',
+      accentBg: 'bg-sky-50',
     },
     {
       label: 'Vụ đang canh tác',
       value: stats.active_seasons,
       icon: Calendar,
-      color: 'bg-amber-50 text-amber-700',
-      iconColor: 'text-amber-600',
-    },
-    {
-      label: 'Sản lượng (tấn)',
-      value: Number((stats.total_yield_kg_ytd / 1000).toFixed(1)),
-      icon: Wheat,
-      color: 'bg-lime-50 text-lime-700',
-      iconColor: 'text-lime-600',
-      suffix: 'tấn',
+      accent: 'text-amber-600',
+      accentBg: 'bg-amber-50',
     },
     {
       label: 'Lô hàng hoạt động',
       value: stats.active_batches,
       icon: Package,
-      color: 'bg-purple-50 text-purple-700',
-      iconColor: 'text-purple-600',
+      accent: 'text-violet-600',
+      accentBg: 'bg-violet-50',
     },
     {
       label: 'Mã QR đã cấp',
       value: stats.total_qr_issued.toLocaleString('vi-VN'),
       icon: QrCode,
-      color: 'bg-indigo-50 text-indigo-700',
-      iconColor: 'text-indigo-600',
+      accent: 'text-indigo-600',
+      accentBg: 'bg-indigo-50',
     },
     {
       label: 'Carbon chờ duyệt',
       value: stats.carbon.draft + stats.carbon.verified,
       icon: Leaf,
-      color: 'bg-orange-50 text-orange-700',
-      iconColor: 'text-orange-600',
+      accent: 'text-orange-600',
+      accentBg: 'bg-orange-50',
       subtext: `${stats.carbon.draft} nháp · ${stats.carbon.verified} đã xác minh`,
-    },
-    {
-      label: 'Tín chỉ carbon cấp',
-      value: stats.carbon.total_credits_tCO2e,
-      icon: Award,
-      color: 'bg-teal-50 text-teal-700',
-      iconColor: 'text-teal-600',
-      suffix: 'tCO2e',
-      subtext: `${stats.carbon.issued} chứng nhận`,
     },
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Refresh indicator */}
+    <div className="space-y-5">
+      {/* ─── Section label ─── */}
       <div className="flex justify-between items-center">
-        <h2 className="font-serif text-xl font-bold text-stone-800">
-          Tổng quan hoạt động
-        </h2>
+        <h2 className="text-lg font-bold text-stone-800 tracking-tight">Tổng quan hoạt động</h2>
         <button
           onClick={fetchStats}
-          className="flex items-center gap-1 text-xs font-semibold text-stone-400 hover:text-[#1b4332] transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-stone-400 hover:text-[#1b4332] transition-colors"
         >
           <RefreshCw className="h-3 w-3" />
           Làm mới
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {cards.map((card, i) => {
+      {/* ─── Hero cards row ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* Hero 1: Carbon Credits */}
+        <div className="relative overflow-hidden rounded-xl bg-[#1b4332] p-7 text-white shadow-sm">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-white/10">
+                <Award className="h-5 w-5 text-emerald-300" strokeWidth={1.8} />
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-300/80 uppercase tracking-[0.1em]">
+                Tín chỉ carbon
+              </span>
+            </div>
+            <p className="font-sans text-4.5xl font-bold tracking-tight leading-none">
+              {stats.carbon.total_credits_tCO2e.toFixed(1)}
+              <span className="text-base font-medium text-emerald-300 ml-1.5">tCO₂e</span>
+            </p>
+            <p className="text-emerald-200/70 text-xs font-medium mt-3">
+              {stats.carbon.issued} chứng nhận đã phát hành
+            </p>
+          </div>
+        </div>
+
+        {/* Hero 2: Total Yield */}
+        <div className="relative overflow-hidden rounded-xl bg-[#faf5e8] p-7 shadow-sm">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-amber-100/80">
+                <Wheat className="h-5 w-5 text-amber-700" strokeWidth={1.8} />
+              </div>
+              <span className="text-[11px] font-semibold text-amber-700/70 uppercase tracking-[0.1em]">
+                Sản lượng thu hoạch
+              </span>
+            </div>
+            <p className="font-sans text-4.5xl font-bold text-stone-900 tracking-tight leading-none">
+              {(stats.total_yield_kg_ytd / 1000).toFixed(1)}
+              <span className="text-base font-medium text-amber-700/60 ml-1.5">tấn</span>
+            </p>
+            <p className="text-stone-500 text-xs font-medium mt-3">
+              {stats.completed_seasons_ytd} vụ đã hoàn thành trong năm
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Operational metric cards ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {operationalCards.map((card, i) => {
           const Icon = card.icon;
           return (
             <div
               key={i}
-              className="bg-white p-4 rounded-2xl border border-[#e6ebe3] shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-300 group"
+              className="rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] border-0"
             >
-              <div className="flex items-start gap-3">
-                <div className={`${card.color} p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="h-5 w-5" />
+              <div className="flex flex-col gap-3">
+                <div className={`${card.accentBg} ${card.accent} p-2 rounded-lg w-fit`}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate">
+                  <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-[0.06em] truncate">
                     {card.label}
                   </p>
-                  <h3 className="text-xl font-bold text-stone-800 mt-0.5 leading-tight">
+                  <p className="font-sans text-2xl font-bold text-stone-900 mt-0.5 leading-tight tracking-tight">
                     {card.value}
-                    {card.suffix && (
-                      <span className="text-xs font-medium text-stone-400 ml-1">{card.suffix}</span>
-                    )}
-                  </h3>
+                  </p>
                   {card.subtext && (
-                    <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">
+                    <p className="text-[9px] text-stone-400 font-medium mt-0.5 truncate">
                       {card.subtext}
                     </p>
                   )}
@@ -213,23 +236,24 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
         })}
       </div>
 
-      {/* Carbon Balance Indicator */}
+      {/* ─── Carbon Balance Banner ─── */}
       {stats.carbon.total_credits_tCO2e > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-2xl border border-emerald-200/50 flex items-center gap-3">
-          <div className="bg-emerald-100 p-2 rounded-xl">
-            <TrendingDown className="h-5 w-5 text-emerald-700" />
+        <div className="flex items-center gap-4 rounded-xl bg-emerald-50/40 px-6 py-4">
+          <div className="p-2.5 rounded-lg bg-emerald-100/80">
+            <TrendingDown className="h-5 w-5 text-emerald-700" strokeWidth={1.8} />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-emerald-800">
-              Tổng lượng giảm phát thải carbon đã được chứng nhận
+            <p className="text-xs font-semibold text-emerald-800/80">
+              Tổng lượng giảm phát thải đã được chứng nhận
             </p>
-            <p className="text-lg font-bold text-emerald-900 mt-0.5">
-              {stats.carbon.total_credits_tCO2e.toFixed(2)} <span className="text-sm font-medium">tCO2e</span>
+            <p className="font-sans text-lg font-bold text-emerald-900 mt-0.5">
+              {stats.carbon.total_credits_tCO2e.toFixed(2)}{' '}
+              <span className="text-sm font-medium text-emerald-600">tCO₂e</span>
             </p>
           </div>
-          <div className="flex items-center gap-1">
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
-            <span className="text-xs font-bold text-emerald-700">{stats.carbon.issued} chứng nhận</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-700">{stats.carbon.issued} chứng nhận</span>
           </div>
         </div>
       )}

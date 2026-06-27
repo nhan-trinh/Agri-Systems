@@ -105,7 +105,7 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="text-xs font-bold text-stone-600 bg-[#f4f7f3] border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1b4332] transition-all cursor-pointer"
+          className="text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 border-0 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-0 transition-all cursor-pointer"
         >
           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -116,15 +116,15 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e6ebe3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f2ef" vertical={false} />
             <XAxis 
               dataKey="name" 
-              tick={{ fontSize: 11, fill: '#78716c', fontWeight: 600 }} 
-              axisLine={{ stroke: '#e6ebe3' }}
+              tick={{ fontSize: 10, fill: '#888b86', fontWeight: 500 }} 
+              axisLine={{ stroke: '#f0f2ef' }}
               tickLine={false}
             />
             <YAxis 
-              tick={{ fontSize: 10, fill: '#78716c' }} 
+              tick={{ fontSize: 9, fill: '#888b86' }} 
               axisLine={false}
               tickLine={false}
               label={{ value: 'tCO2e', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#a8a29e', offset: 15 }}
@@ -132,11 +132,11 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
             <Tooltip
               contentStyle={{
                 backgroundColor: '#fff',
-                border: '1px solid #e6ebe3',
+                border: 'none',
                 borderRadius: '12px',
                 fontSize: '12px',
                 fontWeight: 600,
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                boxShadow: '0 10px 25px -5px rgba(27, 67, 50, 0.08)',
               }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, name: any) => {
@@ -155,9 +155,9 @@ export function CarbonTrendChart({ year, cooperativeId }: CarbonTrendChartProps)
               wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
             />
             <ReferenceLine y={0} stroke="#a8a29e" strokeDasharray="3 3" />
-            <Bar dataKey="emitted" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="sequestered" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="net" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={24} />
+            <Bar dataKey="emitted" fill="#e05a47" radius={[6, 6, 0, 0]} maxBarSize={22} />
+            <Bar dataKey="sequestered" fill="#52b788" radius={[6, 6, 0, 0]} maxBarSize={22} />
+            <Bar dataKey="net" fill="#e9a13b" radius={[6, 6, 0, 0]} maxBarSize={22} />
           </BarChart>
         </ResponsiveContainer>
       </div>
