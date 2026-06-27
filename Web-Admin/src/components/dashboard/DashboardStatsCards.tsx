@@ -162,16 +162,10 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
       {/* ─── Hero cards row ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Hero 1: Carbon Credits */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1b4332] via-[#24523d] to-[#112d21] p-7 text-white animate-fade-in-up">
-          {/* Concentric rings for premium branding */}
-          <div className="absolute top-0 right-0 w-44 h-44 rounded-full bg-white/[0.03] -translate-y-12 translate-x-12" />
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full border border-white/[0.02] -translate-y-16 translate-x-16" />
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full border border-white/[0.015] -translate-y-20 translate-x-20" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/[0.01] translate-y-8 -translate-x-8" />
-          
+        <div className="relative overflow-hidden rounded-3xl bg-[#1b4332] p-7 text-white shadow-sm">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-xl bg-white/10 backdrop-blur-sm">
+              <div className="p-2 rounded-xl bg-white/10">
                 <Award className="h-5 w-5 text-emerald-300" strokeWidth={1.8} />
               </div>
               <span className="text-[11px] font-semibold text-emerald-300/80 uppercase tracking-[0.1em]">
@@ -189,12 +183,7 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
         </div>
 
         {/* Hero 2: Total Yield */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#faf8f2] via-[#f6edd6] to-[#fdfbf7] p-7 animate-fade-in-up" style={{ animationDelay: '0.08s' }}>
-          {/* Concentric gold rings */}
-          <div className="absolute top-0 right-0 w-44 h-44 rounded-full bg-amber-500/[0.02] -translate-y-12 translate-x-12" />
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full border border-amber-500/[0.015] -translate-y-16 translate-x-16" />
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full border border-amber-500/[0.01] -translate-y-20 translate-x-20" />
-
+        <div className="relative overflow-hidden rounded-3xl bg-[#faf5e8] p-7 shadow-sm">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-xl bg-amber-100/80">
@@ -222,11 +211,10 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
           return (
             <div
               key={i}
-              className="group rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01),0_8px_30px_rgba(27,67,50,0.02)] hover:shadow-[0_12px_40px_rgba(27,67,50,0.06)] transition-all duration-300 hover:-translate-y-1 animate-fade-in-up border-0"
-              style={{ animationDelay: `${0.12 + 0.04 * i}s` }}
+              className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.015)] border-0"
             >
               <div className="flex items-start gap-3">
-                <div className={`${card.accentBg} ${card.accent} p-2 rounded-xl group-hover:scale-105 transition-transform duration-300`}>
+                <div className={`${card.accentBg} ${card.accent} p-2 rounded-xl`}>
                   <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -250,7 +238,7 @@ export function DashboardStatsCards({ cooperativeId }: DashboardStatsCardsProps)
 
       {/* ─── Carbon Balance Banner ─── */}
       {stats.carbon.total_credits_tCO2e > 0 && (
-        <div className="flex items-center gap-4 rounded-2xl bg-emerald-50/50 px-6 py-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <div className="flex items-center gap-4 rounded-2xl bg-emerald-50/40 px-6 py-4">
           <div className="p-2.5 rounded-xl bg-emerald-100/80">
             <TrendingDown className="h-5 w-5 text-emerald-700" strokeWidth={1.8} />
           </div>

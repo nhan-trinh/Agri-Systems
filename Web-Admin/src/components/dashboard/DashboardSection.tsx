@@ -22,7 +22,7 @@ export function DashboardSection({
   return (
     <section
       className={cn(
-        'bg-white rounded-[28px] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_12px_40px_rgba(27,67,50,0.03)] flex flex-col',
+        'bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.015)] flex flex-col',
         className
       )}
     >

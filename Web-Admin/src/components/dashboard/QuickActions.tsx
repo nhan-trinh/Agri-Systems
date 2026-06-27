@@ -126,27 +126,26 @@ function QuickActionCard({ action }: { action: QuickAction }) {
       )}
       <div
         className={cn(
-          'p-3 rounded-2xl w-fit transition-all duration-300',
+          'p-3 rounded-2xl w-fit',
           disabled
             ? 'bg-stone-100 text-stone-400'
-            : 'bg-emerald-50/80 text-[#1b4332] group-hover:bg-[#1b4332] group-hover:text-white group-hover:scale-105'
+            : 'bg-emerald-50 text-[#1b4332]'
         )}
       >
         <Icon className="h-6 w-6" strokeWidth={1.8} />
       </div>
       <h3
         className={cn(
-          'text-[15px] font-bold text-stone-800 mt-5',
-          !disabled && 'group-hover:text-[#1b4332]'
+          'text-[15px] font-bold text-stone-800 mt-5'
         )}
       >
         {title}
       </h3>
       <p className="text-stone-500 text-[13px] mt-1.5 leading-relaxed">{description}</p>
       {!disabled && (
-        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-700/60 group-hover:text-emerald-700 transition-colors">
+        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-700">
           Mở
-          <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          <ArrowUpRight className="h-3.5 w-3.5" />
         </div>
       )}
     </>
@@ -154,7 +153,7 @@ function QuickActionCard({ action }: { action: QuickAction }) {
 
   if (disabled) {
     return (
-      <div className="bg-[#fcfdfc] p-6 rounded-3xl opacity-65 relative shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+      <div className="bg-[#fcfdfc] p-6 rounded-3xl opacity-65 relative shadow-[0_4px_24px_rgba(0,0,0,0.005)]">
         {content}
       </div>
     );
@@ -163,7 +162,7 @@ function QuickActionCard({ action }: { action: QuickAction }) {
   return (
     <Link
       href={href!}
-      className="bg-white p-6 rounded-3xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_30px_rgba(27,67,50,0.025)] hover:shadow-[0_12px_40px_rgba(27,67,50,0.06)] transition-all duration-300 hover:-translate-y-1 group relative"
+      className="bg-white p-6 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.015)] relative block"
     >
       {content}
     </Link>

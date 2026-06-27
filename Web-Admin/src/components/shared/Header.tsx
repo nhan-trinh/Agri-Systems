@@ -38,7 +38,7 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white/75 backdrop-blur-md shadow-[0_1px_2px_rgba(0,0,0,0.01),0_4px_20px_rgba(27,67,50,0.02)] flex items-center justify-between px-8 font-sans sticky top-0 z-30">
+    <header className="h-16 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between px-8 font-sans sticky top-0 z-30">
       <div className="flex items-center gap-2">
         <h2 className="text-stone-800 font-semibold text-base hidden md:block">
           Hệ thống Quản lý AgriTrace

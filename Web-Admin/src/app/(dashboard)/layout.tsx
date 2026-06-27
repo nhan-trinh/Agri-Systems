@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 p-8 pb-12 bg-[#f4f6f3]">{children}</main>
+        <main className="flex-1 p-8 pb-12 bg-[#f8faf8]">{children}</main>
       </div>
     </div>
   );

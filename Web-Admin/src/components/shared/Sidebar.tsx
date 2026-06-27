@@ -114,12 +114,13 @@ export function Sidebar() {
     logout();
     router.push('/login');
   };
+
   return (
-    <aside className="w-68 bg-white h-screen hidden md:flex flex-col justify-between sticky top-0 font-sans shadow-[1px_0_3px_rgba(0,0,0,0.01),6px_0_24px_rgba(27,67,50,0.015)] z-20">
+    <aside className="w-68 bg-white h-screen hidden md:flex flex-col justify-between sticky top-0 font-sans shadow-[1px_0_8px_rgba(0,0,0,0.01)] z-20">
       <div className="flex flex-col pt-6 px-4">
         {/* Branding */}
         <div className="flex items-center gap-3 px-3 mb-8">
-          <div className="bg-[#1b4332] text-white p-2 rounded-xl shadow-md transition-all duration-300 hover:scale-105">
+          <div className="bg-[#1b4332] text-white p-2 rounded-xl">
             <Sprout className="h-6 w-6" />
           </div>
           <div>
@@ -141,13 +142,13 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 group relative ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors duration-200 group relative ${
                   isActive
-                    ? 'bg-[#1b4332] text-white shadow-sm'
+                    ? 'bg-[#1b4332] text-white'
                     : 'text-stone-600 hover:text-[#1b4332] hover:bg-[#f4f6f3]'
                 }`}
               >
-                <Icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-[#52b788]' : 'text-stone-400 group-hover:text-[#1b4332]'}`} />
+                <Icon className={`h-5 w-5 ${isActive ? 'text-[#52b788]' : 'text-stone-400 group-hover:text-[#1b4332]'}`} />
                 <span>{item.title}</span>
               </Link>
             );
@@ -156,7 +157,7 @@ export function Sidebar() {
       </div>
 
       {/* Footer Info & Logout */}
-      <div className="mx-3 mb-6 p-4 rounded-2xl bg-[#f8faf8] shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+      <div className="mx-3 mb-6 p-4 rounded-2xl bg-[#f8faf8] shadow-[0_1px_2px_rgba(0,0,0,0.005)]">
         <div className="flex items-center gap-3 mb-4 px-1">
           {user.avatarUrl ? (
             <img 
@@ -179,7 +180,7 @@ export function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-50 hover:border-red-100 transition-all duration-300"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors duration-200"
         >
           <LogOut className="h-4 w-4" />
           Đăng xuất

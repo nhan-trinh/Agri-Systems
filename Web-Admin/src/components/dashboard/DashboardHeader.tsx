@@ -67,12 +67,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       </div>
 
       {/* Right: Carbon Pulse — signature element */}
-      <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_12px_40px_rgba(27,67,50,0.03)] animate-fade-in-up">
+      <div className="flex items-center gap-4 bg-white px-6 py-4 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.015)]">
         <div className="relative flex-shrink-0">
-          <div className="relative z-10 h-11 w-11 rounded-2xl bg-gradient-to-br from-[#1b4332] to-[#52b788] flex items-center justify-center shadow-lg shadow-emerald-900/15">
+          <div className="h-11 w-11 rounded-2xl bg-[#1b4332] flex items-center justify-center shadow-md">
             <Sprout className="h-5 w-5 text-white" strokeWidth={1.8} />
           </div>
-          <div className="absolute inset-0 rounded-2xl bg-emerald-400/10 animate-pulse-ring" />
         </div>
         <div>
           <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-[0.12em]">
