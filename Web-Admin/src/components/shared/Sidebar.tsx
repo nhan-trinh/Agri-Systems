@@ -20,7 +20,12 @@ import {
   Sprout
 } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -113,10 +118,15 @@ export function Sidebar() {
   const handleLogout = () => {
     logout();
     router.push('/login');
+    onClose?.();
   };
 
-  return (
-    <aside className="w-68 bg-white h-screen hidden md:flex flex-col justify-between sticky top-0 font-sans shadow-[1px_0_8px_rgba(0,0,0,0.01)] z-20">
+  const handleNavClick = () => {
+    onClose?.();
+  };
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full justify-between font-sans">
       <div className="flex flex-col pt-6 px-4">
         {/* Branding */}
         <div className="flex items-center gap-3 px-3 mb-8">
@@ -142,6 +152,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleNavClick}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors duration-200 group relative ${
                   isActive
                     ? 'bg-[#1b4332] text-white'
@@ -186,6 +197,33 @@ export function Sidebar() {
           Đăng xuất
         </button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — static, always visible */}
+      <aside className="w-68 bg-white h-screen hidden md:flex flex-col sticky top-0 shadow-[1px_0_8px_rgba(0,0,0,0.01)] z-20">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar drawer — slides in from left */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[280px] max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-stone-900/50 backdrop-blur-sm md:hidden transition-opacity duration-300"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+    </>
   );
 }

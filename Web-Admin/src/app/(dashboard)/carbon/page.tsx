@@ -315,7 +315,7 @@ export default function CarbonPage() {
 
       {/* Page Header */}
       <div>
-        <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">
+        <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">
           Báo cáo & Chứng nhận Carbon
         </h1>
         <p className="text-stone-500 text-sm mt-1">
@@ -686,7 +686,7 @@ export default function CarbonPage() {
               {activeTab === 'overview' ? (
                 <div className="space-y-6">
                   {/* Summary Metric Boxes */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-red-50/50 border border-red-100 p-4 rounded-xl">
                       <p className="text-[10px] font-bold text-red-600 uppercase">Tổng phát thải</p>
                       <h4 className="text-xl font-bold text-red-800 mt-1">{(selectedRecord.total_emitted_kg).toLocaleString('vi-VN')} <span className="text-xs font-normal">kg CO2e</span></h4>
@@ -725,7 +725,7 @@ export default function CarbonPage() {
                       <Award className="h-4 w-4 text-[#1b4332]" />
                       Thông tin lịch sử và chứng thực
                     </h4>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div>
                         <span className="text-stone-400 block font-semibold">Tạo bản ghi lúc:</span>
                         <span className="text-stone-700 font-bold">{new Date(selectedRecord.created_at).toLocaleString('vi-VN')}</span>

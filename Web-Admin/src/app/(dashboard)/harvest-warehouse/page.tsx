@@ -149,7 +149,7 @@ export default function HarvestWarehousePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">Kho Nông Sản</h1>
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">Kho Nông Sản</h1>
           <p className="text-stone-500 text-sm mt-1">
             Theo dõi nhập – xuất – tồn nông sản thu hoạch, đối soát trước khi cấp QR truy xuất.
           </p>
@@ -178,7 +178,7 @@ export default function HarvestWarehousePage() {
       </div>
 
       {/* Sub tabs */}
-      <div className="flex border-b border-stone-200">
+      <div className="flex overflow-x-auto border-b border-stone-200">
         <Link
           href="/harvest-warehouse"
           className="px-4 py-2.5 text-sm font-bold border-b-2 border-[#1b4332] text-[#1b4332] -mb-[2px]"

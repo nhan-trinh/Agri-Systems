@@ -316,7 +316,7 @@ export default function FarmZonesPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">
             Quản lý Vùng Trồng
           </h1>
           <p className="text-stone-500 text-sm mt-1">
@@ -335,7 +335,7 @@ export default function FarmZonesPage() {
       {/* Split Layout: Map View and Table List */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Side: interactive Map display */}
-        <div className="lg:col-span-5 flex flex-col h-[500px] lg:h-[600px] sticky top-6">
+        <div className="lg:col-span-5 flex flex-col h-[350px] md:h-[500px] lg:h-[600px] sticky top-6">
           <div className="flex-1 relative rounded-2xl overflow-hidden shadow-sm border border-[#e6ebe3]">
             <FarmZoneMap
               zones={zones}
@@ -345,7 +345,7 @@ export default function FarmZonesPage() {
             />
           </div>
           <div className="bg-white/80 border border-[#e6ebe3] p-3 rounded-xl mt-3 flex items-center justify-between text-xs font-semibold text-stone-500">
-            <span className="flex items-center gap-1.5"><MapIcon className="h-4 w-4 text-[#1b4332]" /> Click vào ô ranh giới để xem thông tin chi tiết vùng trồng.</span>
+            <span className="hidden sm:flex items-center gap-1.5"><MapIcon className="h-4 w-4 text-[#1b4332]" /> Click vào ô ranh giới để xem thông tin chi tiết vùng trồng.</span>
             {selectedZoneId && (
               <button
                 onClick={() => setSelectedZoneId(null)}
@@ -631,7 +631,7 @@ export default function FarmZonesPage() {
               </form>
 
               {/* Right Column: Live Map Drawer */}
-              <div className="h-[500px] lg:h-auto lg:min-h-[500px] relative rounded-2xl overflow-hidden shadow-inner border border-[#e6ebe3]">
+              <div className="h-[350px] md:h-[500px] lg:h-auto lg:min-h-[500px] relative rounded-2xl overflow-hidden shadow-inner border border-[#e6ebe3]">
                 <FarmZoneMap
                   isDrawing={true}
                   drawingPoints={drawingPoints}

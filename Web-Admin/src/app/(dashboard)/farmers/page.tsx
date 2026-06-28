@@ -300,7 +300,7 @@ export default function FarmersPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">
             Quản lý tài khoản Nông dân
           </h1>
           <p className="text-stone-500 text-sm mt-1">
@@ -458,9 +458,9 @@ export default function FarmersPage() {
               </button>
             </div>
 
-            <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="p-6 space-y-6">
+            <form onSubmit={isCreateOpen ? handleCreateSubmit : handleEditSubmit} className="p-4 md:p-6 space-y-6">
               {formError && (
-                <div className="bg-red-50 text-red-800 text-xs px-4 py-3 rounded-xl border border-red-200 font-semibold flex items-center gap-2">
+                <div className="bg-red-50 text-red-800 text-xs px-3 py-3 md:px-4 rounded-xl border border-red-200 font-semibold flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -510,7 +510,7 @@ export default function FarmersPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
                     Số Điện Thoại <span className="text-red-500">*</span>
@@ -538,7 +538,7 @@ export default function FarmersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
                     Ngày Sinh
@@ -565,7 +565,7 @@ export default function FarmersPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-[#e6ebe3]">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end pt-4 border-t border-[#e6ebe3]">
                 <button
                   type="button"
                   onClick={() => {

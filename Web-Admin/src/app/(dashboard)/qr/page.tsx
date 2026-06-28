@@ -622,7 +622,7 @@ export default function QRPage() {
                       Chưa có mã QR nào được ghi nhận cho lô hàng này.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-3 max-h-[300px] overflow-y-auto p-1 bg-[#fbfcf9] rounded-2xl border border-[#e6ebe3]">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-[300px] overflow-y-auto p-1 bg-[#fbfcf9] rounded-2xl border border-[#e6ebe3]">
                       {qrCodes.map((qr) => (
                         <div
                           key={qr.id}

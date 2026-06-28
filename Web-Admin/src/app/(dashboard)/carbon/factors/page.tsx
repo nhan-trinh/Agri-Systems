@@ -241,7 +241,7 @@ export default function CarbonFactorsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">
             Cấu hình Hệ số phát thải Carbon
           </h1>
           <p className="text-stone-500 text-sm mt-1">

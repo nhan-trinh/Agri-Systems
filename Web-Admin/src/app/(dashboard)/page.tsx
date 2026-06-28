@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
       {/* ── Farm-zone map (Full width) ── */}
       <DashboardSection title="Bản đồ vùng trồng" icon={Map} bodyClassName="px-0 pb-0">
-        <div className="h-[450px] w-full overflow-hidden rounded-b-xl">
+        <div className="h-[300px] md:h-[450px] w-full overflow-hidden rounded-b-xl">
           <FarmZoneMap zones={zones} />
         </div>
       </DashboardSection>

@@ -84,14 +84,14 @@ export default function HarvestReconciliationPage() {
     <div className="space-y-6 font-sans">
       {/* Header */}
       <div>
-        <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">Đối Chiếu Sản Lượng</h1>
+        <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">Đối Chiếu Sản Lượng</h1>
         <p className="text-stone-500 text-sm mt-1">
           So sánh dự kiến, lượng thực nhận vào kho và sản lượng khai báo khi đóng vụ — phát hiện chênh lệch (UC-07).
         </p>
       </div>
 
       {/* Sub tabs */}
-      <div className="flex border-b border-stone-200">
+      <div className="flex overflow-x-auto border-b border-stone-200">
         <Link
           href="/harvest-warehouse"
           className="px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-stone-500 hover:text-stone-800 -mb-[2px] transition-all"

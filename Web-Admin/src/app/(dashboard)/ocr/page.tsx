@@ -22,7 +22,7 @@ export default function OCRPage() {
     <div className="space-y-6 font-sans relative">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-[#1b4332] tracking-tight">
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#1b4332] tracking-tight">
             Số hóa tài liệu (OCR)
           </h1>
           <p className="text-stone-500 text-sm mt-1">
